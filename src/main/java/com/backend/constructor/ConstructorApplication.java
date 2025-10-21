@@ -1,16 +1,19 @@
 package com.backend.constructor;
 
+import com.backend.constructor.config.properties.RsaKeyProperties;
 import io.micrometer.common.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.env.Environment;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 @SpringBootApplication
+@EnableConfigurationProperties({RsaKeyProperties.class})
 public class ConstructorApplication {
 
     private static final Logger log = LoggerFactory.getLogger(ConstructorApplication.class);
