@@ -9,7 +9,6 @@ public record SignUpRequest(
         String username,
         @NotBlank
         String password,
-        @NotBlank
-        String displayName
-) {
+        String firstName,
+        String lastName) {
 }

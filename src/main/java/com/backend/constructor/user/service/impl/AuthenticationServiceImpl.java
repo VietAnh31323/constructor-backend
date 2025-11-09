@@ -1,13 +1,18 @@
 package com.backend.constructor.user.service.impl;
 
+import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.common.enums.AccountStatus;
+import com.backend.constructor.common.enums.ERole;
 import com.backend.constructor.common.enums.TokenType;
 import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.config.languages.Translator;
 import com.backend.constructor.core.domain.entity.AccountEntity;
+import com.backend.constructor.core.domain.entity.AccountRoleMapEntity;
+import com.backend.constructor.core.domain.entity.RoleEntity;
 import com.backend.constructor.core.domain.entity.TokenEntity;
 import com.backend.constructor.core.port.mapper.AccountMapper;
 import com.backend.constructor.core.port.repository.AccountRepository;
+import com.backend.constructor.core.port.repository.AccountRoleMapRepository;
 import com.backend.constructor.core.port.repository.RoleRepository;
 import com.backend.constructor.core.port.repository.TokenRepository;
 import com.backend.constructor.user.dto.request.SignInRequest;
@@ -53,19 +58,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     //Mapper
     AccountMapper accountMapper;
+    private final AccountRoleMapRepository accountRoleMapRepository;
 
     @Override
     @Transactional
-    public AccountDto signUp(SignUpRequest request) {
+    public IdResponse signUp(SignUpRequest request) {
         if (accountRepository.existsByUsername(request.username())) {
             throw new BusinessException(String.valueOf(HttpStatus.BAD_REQUEST.value()), translator.toLocale("error.username.exists", request.username()));
         }
         final var entity = accountMapper.toEntity(request);
-//        RoleEntity role = roleRepository.findByName(ERole.USER).orElse(RoleEntity.builder().name(ERole.USER).build());
+        RoleEntity role = roleRepository.getByName(ERole.STAFF).orElse(RoleEntity.builder().name(ERole.STAFF).description("nhân viên").build());
         entity.setPassword(passwordEncoder.encode(request.password()));
-//        entity.addRole(role);
         entity.setStatus(AccountStatus.ACTIVE);
-        return accountMapper.toDto(accountRepository.save(entity));
+        accountRepository.save(entity);
+        saveAccountRoleMap(entity.getId(), role);
+        return IdResponse.builder().id(entity.getId()).build();
     }
 
     @Override
@@ -152,5 +159,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         refreshTokenEntity.setType(TokenType.REFRESH);
         refreshTokenEntity.setAccountId(account.getId());
         tokenRepository.save(refreshTokenEntity);
+    }
+
+    private void saveAccountRoleMap(Long accountId, RoleEntity role) {
+        AccountRoleMapEntity accountRoleMapEntity = AccountRoleMapEntity.builder()
+                .accountId(accountId)
+                .roleId(role.getId())
+                .build();
+        accountRoleMapRepository.save(accountRoleMapEntity);
     }
 }

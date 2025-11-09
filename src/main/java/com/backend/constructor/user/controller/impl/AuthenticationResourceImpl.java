@@ -1,5 +1,6 @@
 package com.backend.constructor.user.controller.impl;
 
+import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.common.base.dto.response.Response;
 import com.backend.constructor.user.controller.AuthenticationResource;
 import com.backend.constructor.user.dto.request.SignInRequest;
@@ -23,7 +24,7 @@ public class AuthenticationResourceImpl implements AuthenticationResource {
     private final LogoutHandler logoutHandler;
 
     @Override
-    public Response<AccountDto> signUp(final SignUpRequest request) {
+    public Response<IdResponse> signUp(final SignUpRequest request) {
         return Response.ok(authenticationService.signUp(request));
     }
 

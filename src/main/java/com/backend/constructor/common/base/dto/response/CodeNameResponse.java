@@ -11,8 +11,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class IdResponse {
+public class CodeNameResponse {
     @NotNull(message = "{ERROR_0001}")
     @Min(1L)
     private Long id;
+    private String code;
+    private String name;
 }

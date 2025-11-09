@@ -3,7 +3,9 @@ package com.backend.constructor.user.security.jwt;
 import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.config.properties.RsaKeyProperties;
 import com.backend.constructor.core.domain.entity.AccountEntity;
+import com.backend.constructor.core.domain.entity.RoleEntity;
 import com.backend.constructor.core.port.repository.AccountRepository;
+import com.backend.constructor.core.port.repository.RoleRepository;
 import com.backend.constructor.core.port.repository.TokenRepository;
 import com.backend.constructor.user.security.SecurityUtils;
 import com.nimbusds.jwt.JWTParser;
@@ -27,6 +29,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -43,6 +46,7 @@ public class TokenProvider {
     private static final String AUTHORITIES_KEY = "scope";
     private static final String INVALID_JWT_TOKEN = "Invalid JWT token.";
     private static final String PREFIX_AUTHORIZE = "ROLE_";
+    private final RoleRepository roleRepository;
 
     public Jwt createToken(Authentication authentication) {
         log.info("[TokenProvider:createToken] Token Creation Started for:{}", authentication.getName());
@@ -147,17 +151,15 @@ public class TokenProvider {
         // Extract user details from UserDetailsEntity
         String username = account.getUsername();
         String password = account.getPassword();
+        List<RoleEntity> roleEntities = roleRepository.getListRoleByAccountId(account.getId());
+        final var authorities = roleEntities.stream()
+                .map(RoleEntity::getName)
+                .map(Enum::name)
+                .map(s -> s.startsWith(PREFIX_AUTHORIZE) ? s : PREFIX_AUTHORIZE + s)
+                .map(SimpleGrantedAuthority::new)
+                .toList();
 
-//        final var authorities = account.getRoles()
-//                .stream()
-//                .map(RoleEntity::getName)
-//                .map(Enum::name)
-//                .map(s -> s.startsWith(PREFIX_AUTHORIZE) ? s : PREFIX_AUTHORIZE + s)
-//                .map(SimpleGrantedAuthority::new)
-//                .toList();
-
-//        return new UsernamePasswordAuthenticationToken(username, password, authorities);
-        return null;
+        return new UsernamePasswordAuthenticationToken(username, password, authorities);
     }
 
     public String getUserName(final Jwt jwt) {
@@ -172,14 +174,12 @@ public class TokenProvider {
     }
 
     private User createSpringSecurityUser(AccountEntity account) {
-//        final var grantedAuthorities = account
-//                .getRoles()
-//                .stream()
-//                .map(RoleEntity::getName)
-//                .map(Enum::name)
-//                .map(SimpleGrantedAuthority::new)
-//                .toList();
-//        return new User(account.getEmail(), account.getPassword(), grantedAuthorities);
-        return null;
+        List<RoleEntity> roleEntities = roleRepository.getListRoleByAccountId(account.getId());
+        final var grantedAuthorities = roleEntities.stream()
+                .map(RoleEntity::getName)
+                .map(Enum::name)
+                .map(SimpleGrantedAuthority::new)
+                .toList();
+        return new User(account.getUsername(), account.getPassword(), grantedAuthorities);
     }
 }
