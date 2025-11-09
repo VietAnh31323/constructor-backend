@@ -1,0 +1,233 @@
+CREATE TABLE account
+(
+    id         BIGSERIAL PRIMARY KEY,
+    username   VARCHAR,
+    password   TEXT,
+    first_name VARCHAR,
+    last_name  VARCHAR,
+    dob        TIMESTAMP,
+    status     VARCHAR,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by BIGINT,
+    updated_by BIGINT
+);
+
+CREATE TABLE role
+(
+    id          BIGSERIAL PRIMARY KEY,
+    name        VARCHAR,
+    description TEXT,
+    created_at  TIMESTAMP,
+    updated_at  TIMESTAMP,
+    created_by  BIGINT,
+    updated_by  BIGINT
+);
+
+CREATE TABLE account_role_map
+(
+    id         BIGSERIAL PRIMARY KEY,
+    account_id BIGINT,
+    role_id    BIGINT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by BIGINT,
+    updated_by BIGINT
+);
+
+CREATE TABLE token
+(
+    id          BIGSERIAL PRIMARY KEY,
+    account_id  BIGINT,
+    token       VARCHAR,
+    type        VARCHAR,
+    expiry_date TIMESTAMP,
+    revoked     BOOLEAN,
+    created_at  TIMESTAMP,
+    updated_at  TIMESTAMP,
+    created_by  BIGINT,
+    updated_by  BIGINT
+);
+
+CREATE TABLE staff
+(
+    id          BIGSERIAL PRIMARY KEY,
+    code        VARCHAR,
+    name        VARCHAR,
+    avatar      TEXT,
+    birth_date  TIMESTAMP,
+    address     VARCHAR,
+    phone       VARCHAR,
+    gender      VARCHAR,
+    description TEXT,
+    created_at  TIMESTAMP,
+    updated_at  TIMESTAMP,
+    created_by  BIGINT,
+    updated_by  BIGINT
+);
+
+CREATE TABLE account_staff_map
+(
+    id         BIGSERIAL PRIMARY KEY,
+    account_id BIGINT REFERENCES account (id),
+    staff_id   BIGINT REFERENCES staff (id),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by BIGINT,
+    updated_by BIGINT
+);
+
+CREATE TABLE customer
+(
+    id           BIGSERIAL PRIMARY KEY,
+    code         VARCHAR,
+    name         VARCHAR,
+    phone        VARCHAR,
+    email        VARCHAR,
+    state        VARCHAR,
+    is_potential BOOLEAN,
+    description  TEXT,
+    note         TEXT,
+    created_at   TIMESTAMP,
+    updated_at   TIMESTAMP,
+    created_by   BIGINT,
+    updated_by   BIGINT
+);
+
+CREATE TABLE category
+(
+    id          BIGSERIAL PRIMARY KEY,
+    code        VARCHAR,
+    name        VARCHAR,
+    description TEXT,
+    is_active   BOOLEAN,
+    created_at  TIMESTAMP,
+    updated_at  TIMESTAMP,
+    created_by  BIGINT,
+    updated_by  BIGINT
+);
+
+CREATE TABLE project
+(
+    id               BIGSERIAL PRIMARY KEY,
+    code             VARCHAR,
+    name             VARCHAR,
+    owner            VARCHAR,
+    address          VARCHAR,
+    contract_value   NUMERIC,
+    contract_advance NUMERIC,
+    remaining_amount NUMERIC,
+    sign_date        TIMESTAMP,
+    delivery_date    TIMESTAMP,
+    creator_id       BIGINT,
+    manager_id       BIGINT,
+    supporter_id     BIGINT,
+    description      TEXT,
+    note             TEXT,
+    state            VARCHAR,
+    contract_files   TEXT,
+    sample_images    TEXT,
+    project_images   TEXT,
+    created_at       TIMESTAMP,
+    updated_at       TIMESTAMP,
+    created_by       BIGINT,
+    updated_by       BIGINT
+);
+
+CREATE TABLE project_category_map
+(
+    id          BIGSERIAL PRIMARY KEY,
+    project_id  BIGINT REFERENCES project (id),
+    category_id BIGINT REFERENCES category (id),
+    created_at  TIMESTAMP,
+    updated_at  TIMESTAMP,
+    created_by  BIGINT,
+    updated_by  BIGINT
+);
+
+CREATE TABLE project_line
+(
+    id             BIGSERIAL PRIMARY KEY,
+    project_id     BIGINT REFERENCES project (id),
+    payment_date   TIMESTAMP,
+    payment_no     BIGINT,
+    payment_amount NUMERIC,
+    created_at     TIMESTAMP,
+    updated_at     TIMESTAMP,
+    created_by     BIGINT,
+    updated_by     BIGINT
+);
+
+CREATE TABLE progress
+(
+    id          BIGSERIAL PRIMARY KEY,
+    code        VARCHAR,
+    name        VARCHAR,
+    description TEXT,
+    created_at  TIMESTAMP,
+    updated_at  TIMESTAMP,
+    created_by  BIGINT,
+    updated_by  BIGINT
+);
+
+CREATE TABLE project_progress_map
+(
+    id          BIGSERIAL PRIMARY KEY,
+    project_id  BIGINT REFERENCES project (id),
+    progress_id BIGINT REFERENCES progress (id),
+    state       VARCHAR,
+    created_at  TIMESTAMP,
+    updated_at  TIMESTAMP,
+    created_by  BIGINT,
+    updated_by  BIGINT
+);
+
+CREATE TABLE task
+(
+    id               BIGSERIAL PRIMARY KEY,
+    code             VARCHAR,
+    name             VARCHAR,
+    start_date       TIMESTAMP,
+    end_date         TIMESTAMP,
+    progress_percent FLOAT,
+    reviewer_id      BIGINT,
+    parent_id        BIGINT,
+    state            VARCHAR,
+    created_at       TIMESTAMP,
+    updated_at       TIMESTAMP,
+    created_by       BIGINT,
+    updated_by       BIGINT
+);
+
+CREATE TABLE task_staff_map
+(
+    id         BIGSERIAL PRIMARY KEY,
+    task_id    BIGINT,
+    staff_id   BIGINT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by BIGINT,
+    updated_by BIGINT
+);
+
+CREATE TABLE project_progress_task_map
+(
+    id                      BIGSERIAL PRIMARY KEY,
+    project_progress_map_id BIGINT REFERENCES project_progress_map (id),
+    task_id                 BIGINT,
+    created_at              TIMESTAMP,
+    updated_at              TIMESTAMP,
+    created_by              BIGINT,
+    updated_by              BIGINT
+);
+
+
+
+
+
+
+
+
+
+
+

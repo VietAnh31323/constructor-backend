@@ -1,7 +1,6 @@
 package com.backend.constructor.user.controller;
 
 import com.backend.constructor.common.base.dto.response.Response;
-import com.backend.constructor.user.dto.request.SignInGoogleRequest;
 import com.backend.constructor.user.dto.request.SignInRequest;
 import com.backend.constructor.user.dto.request.SignUpRequest;
 import com.backend.constructor.user.dto.response.AccountDto;
@@ -25,9 +24,6 @@ public interface AuthenticationResource {
     @PreAuthorize("hasAnyAuthority('SCOPE_REFRESH_TOKEN')")
     @PostMapping("/refresh-token")
     Response<AccountDto> getAccessTokenByRefreshToken(HttpServletRequest req);
-
-    @PostMapping("/google/sign-in")
-    Response<AccountDto> signInByGoogle(@Valid @RequestBody SignInGoogleRequest request, HttpServletResponse response);
 
     @PostMapping("/logout")
     Response<String> logout(HttpServletRequest request, HttpServletResponse response);

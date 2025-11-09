@@ -176,6 +176,18 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>jakarta.persistence</groupId>
+            <artifactId>jakarta.persistence-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-jpamodelgen</artifactId>
+            <version>${hibernate.jpamodelgen.version}</version> <!-- Use your Hibernate version -->
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -196,10 +208,11 @@
                             <version>${org.projectlombok.version}</version>
                         </path>
 
-                        <!-- Spring Boot Configuration Processor -->
+                        <!-- Hibernate JPA Metamodel -->
                         <path>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-configuration-processor</artifactId>
+                            <groupId>org.hibernate.orm</groupId>
+                            <artifactId>hibernate-jpamodelgen</artifactId>
+                            <version>${hibernate.jpamodelgen.version}</version>
                         </path>
 
                         <!-- MapStruct -->
@@ -209,11 +222,10 @@
                             <version>${org.mapstruct.version}</version>
                         </path>
 
-                        <!-- Hibernate JPA Metamodel Generator -->
+                        <!-- Spring Boot Configuration Processor -->
                         <path>
-                            <groupId>org.hibernate.orm</groupId>
-                            <artifactId>hibernate-jpamodelgen</artifactId>
-                            <version>${hibernate.jpamodelgen.version}</version>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>

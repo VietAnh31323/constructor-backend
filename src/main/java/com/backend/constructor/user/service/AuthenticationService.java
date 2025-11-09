@@ -1,6 +1,5 @@
 package com.backend.constructor.user.service;
 
-import com.backend.constructor.user.dto.request.SignInGoogleRequest;
 import com.backend.constructor.user.dto.request.SignInRequest;
 import com.backend.constructor.user.dto.request.SignUpRequest;
 import com.backend.constructor.user.dto.response.AccountDto;
@@ -15,5 +14,4 @@ public interface AuthenticationService {
 
     AccountDto accessTokenByRefreshToken(HttpServletRequest req);
 
-    AccountDto signInGoogle(SignInGoogleRequest request, HttpServletResponse response);
 }

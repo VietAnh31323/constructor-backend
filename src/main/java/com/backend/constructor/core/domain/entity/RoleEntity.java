@@ -1,4 +1,4 @@
-package com.backend.constructor.user.entity;
+package com.backend.constructor.core.domain.entity;
 
 import com.backend.constructor.common.base.entity.BaseEntity;
 import com.backend.constructor.common.enums.ERole;
@@ -11,13 +11,14 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "roles")
+@Table(name = "role")
 public class RoleEntity extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "name", length = 20, nullable = false)
-    private ERole name = ERole.USER;
+    private ERole name;
+
+    private String description;
 }

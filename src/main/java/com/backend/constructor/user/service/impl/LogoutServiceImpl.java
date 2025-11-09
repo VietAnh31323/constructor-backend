@@ -1,6 +1,6 @@
 package com.backend.constructor.user.service.impl;
 
-import com.backend.constructor.user.repository.RefreshTokenRepository;
+import com.backend.constructor.core.port.repository.TokenRepository;
 import com.backend.constructor.user.security.jwt.TokenProvider;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,7 +20,7 @@ import org.springframework.util.ObjectUtils;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class LogoutServiceImpl implements LogoutHandler {
 
-    RefreshTokenRepository refreshTokenRepository;
+    TokenRepository tokenRepository;
     TokenProvider tokenProvider;
 
     @Override
@@ -32,10 +32,10 @@ public class LogoutServiceImpl implements LogoutHandler {
             return;
         }
 
-        refreshTokenRepository.findByRefreshToken(refreshToken)
+        tokenRepository.findByRefreshToken(refreshToken)
                 .ifPresent(entity -> {
                     entity.setRevoked(true);
-                    refreshTokenRepository.save(entity);
+                    tokenRepository.save(entity);
                 });
     }
 

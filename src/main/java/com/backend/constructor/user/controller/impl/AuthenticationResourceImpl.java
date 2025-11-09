@@ -2,7 +2,6 @@ package com.backend.constructor.user.controller.impl;
 
 import com.backend.constructor.common.base.dto.response.Response;
 import com.backend.constructor.user.controller.AuthenticationResource;
-import com.backend.constructor.user.dto.request.SignInGoogleRequest;
 import com.backend.constructor.user.dto.request.SignInRequest;
 import com.backend.constructor.user.dto.request.SignUpRequest;
 import com.backend.constructor.user.dto.response.AccountDto;
@@ -36,11 +35,6 @@ public class AuthenticationResourceImpl implements AuthenticationResource {
     @Override
     public Response<AccountDto> getAccessTokenByRefreshToken(final HttpServletRequest request) {
         return Response.ok(authenticationService.accessTokenByRefreshToken(request));
-    }
-
-    @Override
-    public Response<AccountDto> signInByGoogle(final SignInGoogleRequest request, final HttpServletResponse response) {
-        return Response.ok(authenticationService.signInGoogle(request, response));
     }
 
     @Override

@@ -1,7 +1,6 @@
 package com.backend.constructor.common.base.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
@@ -13,7 +12,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.io.Serializable;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -22,18 +21,14 @@ import java.time.OffsetDateTime;
 @JsonIgnoreProperties(value = {"createdAt", "updatedAt", "createdBy", "updatedBy"}, allowGetters = true)
 public abstract class BaseEntity implements EntityID<Long>, Serializable {
     @CreatedBy
-    @Column(name = "created_by", nullable = false, length = 50, updatable = false)
     private String createdBy;
 
     @CreatedDate
-    @Column(name = "created_at", updatable = false)
-    private OffsetDateTime createdAt = OffsetDateTime.now();
+    private Instant createdAt;
 
     @LastModifiedDate
-    @Column(name = "updated_at")
-    private OffsetDateTime updatedAt = OffsetDateTime.now();
+    private Instant updatedAt;
 
     @LastModifiedBy
-    @Column(name = "updated_by", length = 50)
     private String updatedBy;
 }

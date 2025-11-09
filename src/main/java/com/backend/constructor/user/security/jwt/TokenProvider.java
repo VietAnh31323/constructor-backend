@@ -2,10 +2,9 @@ package com.backend.constructor.user.security.jwt;
 
 import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.config.properties.RsaKeyProperties;
-import com.backend.constructor.user.entity.AccountEntity;
-import com.backend.constructor.user.entity.RoleEntity;
-import com.backend.constructor.user.repository.AccountRepository;
-import com.backend.constructor.user.repository.RefreshTokenRepository;
+import com.backend.constructor.core.domain.entity.AccountEntity;
+import com.backend.constructor.core.port.repository.AccountRepository;
+import com.backend.constructor.core.port.repository.TokenRepository;
 import com.backend.constructor.user.security.SecurityUtils;
 import com.nimbusds.jwt.JWTParser;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,7 +37,7 @@ public class TokenProvider {
     private final JwtEncoder jwtEncoder;
     private final JwtDecoder jwtDecoder;
     private final RsaKeyProperties rsaKeyProperties;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenRepository tokenRepository;
     private final AccountRepository accountRepository;
 
     private static final String AUTHORITIES_KEY = "scope";
@@ -76,8 +75,8 @@ public class TokenProvider {
     }
 
     public boolean isRefreshTokenValidInDatabase(Jwt jwt) {
-        return refreshTokenRepository.findByRefreshToken(jwt.getTokenValue())
-                .map(token -> !token.isRevoked())
+        return tokenRepository.findByRefreshToken(jwt.getTokenValue())
+                .map(token -> !token.getRevoked())
                 .orElse(false);
     }
 
@@ -147,17 +146,18 @@ public class TokenProvider {
     public Authentication getAuthentication(final AccountEntity account) {
         // Extract user details from UserDetailsEntity
         String username = account.getUsername();
-        String password = account.getPasswordHash();
+        String password = account.getPassword();
 
-        final var authorities = account.getRoles()
-                .stream()
-                .map(RoleEntity::getName)
-                .map(Enum::name)
-                .map(s -> s.startsWith(PREFIX_AUTHORIZE) ? s : PREFIX_AUTHORIZE + s)
-                .map(SimpleGrantedAuthority::new)
-                .toList();
+//        final var authorities = account.getRoles()
+//                .stream()
+//                .map(RoleEntity::getName)
+//                .map(Enum::name)
+//                .map(s -> s.startsWith(PREFIX_AUTHORIZE) ? s : PREFIX_AUTHORIZE + s)
+//                .map(SimpleGrantedAuthority::new)
+//                .toList();
 
-        return new UsernamePasswordAuthenticationToken(username, password, authorities);
+//        return new UsernamePasswordAuthenticationToken(username, password, authorities);
+        return null;
     }
 
     public String getUserName(final Jwt jwt) {
@@ -172,13 +172,14 @@ public class TokenProvider {
     }
 
     private User createSpringSecurityUser(AccountEntity account) {
-        final var grantedAuthorities = account
-                .getRoles()
-                .stream()
-                .map(RoleEntity::getName)
-                .map(Enum::name)
-                .map(SimpleGrantedAuthority::new)
-                .toList();
-        return new User(account.getUsername(), account.getPasswordHash(), grantedAuthorities);
+//        final var grantedAuthorities = account
+//                .getRoles()
+//                .stream()
+//                .map(RoleEntity::getName)
+//                .map(Enum::name)
+//                .map(SimpleGrantedAuthority::new)
+//                .toList();
+//        return new User(account.getEmail(), account.getPassword(), grantedAuthorities);
+        return null;
     }
 }

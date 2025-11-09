@@ -1,8 +1,9 @@
 package com.backend.constructor.user.security;
 
-import com.backend.constructor.user.entity.AccountEntity;
-import com.backend.constructor.user.entity.RoleEntity;
-import com.backend.constructor.user.repository.AccountRepository;
+import com.backend.constructor.core.domain.entity.AccountEntity;
+import com.backend.constructor.core.domain.entity.RoleEntity;
+import com.backend.constructor.core.port.repository.AccountRepository;
+import com.backend.constructor.core.port.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.validator.internal.constraintvalidators.hv.EmailValidator;
@@ -14,6 +15,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -25,6 +27,7 @@ import java.util.Locale;
 public class DomainUserDetailsService implements UserDetailsService {
 
     private final AccountRepository accountRepository;
+    private final RoleRepository roleRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -44,13 +47,13 @@ public class DomainUserDetailsService implements UserDetailsService {
     }
 
     private User createSpringSecurityUser(AccountEntity account) {
-        final var grantedAuthorities = account
-                .getRoles()
+        List<RoleEntity> roleEntities = roleRepository.getListRoleByAccountId(account.getId());
+        final var grantedAuthorities = roleEntities
                 .stream()
                 .map(RoleEntity::getName)
                 .map(Enum::name)
                 .map(SimpleGrantedAuthority::new)
                 .toList();
-        return new User(account.getUsername(), account.getPasswordHash(), grantedAuthorities);
+        return new User(account.getUsername(), account.getPassword(), grantedAuthorities);
     }
 }
