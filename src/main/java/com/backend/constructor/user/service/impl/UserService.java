@@ -1,11 +1,10 @@
 package com.backend.constructor.user.service.impl;
 
 import com.backend.constructor.common.error.BusinessException;
-import com.backend.constructor.common.service.CloudinaryService;
-import com.backend.constructor.user.controller.UserApi;
-import com.backend.constructor.user.dto.UserInfoDto;
 import com.backend.constructor.core.domain.entity.AccountEntity;
 import com.backend.constructor.core.port.repository.AccountRepository;
+import com.backend.constructor.user.controller.UserApi;
+import com.backend.constructor.user.dto.UserInfoDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class UserService implements UserApi {
     private final AccountRepository accountRepository;
-    private final CloudinaryService cloudinaryService;
 
     @Override
     public UserInfoDto getUserInfo(Long userId) {

@@ -221,6 +221,17 @@ CREATE TABLE project_progress_task_map
     updated_by              BIGINT
 );
 
+CREATE TABLE steel_report
+(
+    id                      BIGSERIAL PRIMARY KEY,
+    project_progress_map_id BIGINT REFERENCES project_progress_map (id),
+    task_id                 BIGINT,
+    created_at              TIMESTAMP,
+    updated_at              TIMESTAMP,
+    created_by              BIGINT,
+    updated_by              BIGINT
+);
+
 
 
 

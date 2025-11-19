@@ -13,11 +13,11 @@ import java.time.Instant;
 public class AccountDto {
     Long userId;
     String username;
-    String displayName;
-    String avatar;
+    String firstName;
+    String lastName;
     String token;
     Instant tokenExpiry;
     String refreshToken;
     Instant refreshTokenExpiry;
-    String tokenType;
+    String authScheme;
 }
