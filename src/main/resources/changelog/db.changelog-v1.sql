@@ -53,7 +53,10 @@ CREATE TABLE staff
 (
     id          BIGSERIAL PRIMARY KEY,
     code        VARCHAR,
+    email       VARCHAR,
     name        VARCHAR,
+    first_name  VARCHAR,
+    last_name   VARCHAR,
     avatar      TEXT,
     birth_date  TIMESTAMP,
     address     VARCHAR,
