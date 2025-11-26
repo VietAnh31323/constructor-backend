@@ -16,6 +16,9 @@ public class GlobalResponseWrapper implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
+        if (returnType.getContainingClass().getPackageName().contains("springdoc") || returnType.getContainingClass().getPackageName().contains("swagger")) {
+            return false;
+        }
         return !Response.class.isAssignableFrom(returnType.getParameterType())
                 && MappingJackson2HttpMessageConverter.class.isAssignableFrom(converterType);
     }
