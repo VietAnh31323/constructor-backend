@@ -224,6 +224,109 @@ CREATE TABLE project_progress_task_map
     updated_by              BIGINT
 );
 
+CREATE TABLE steel_project
+(
+    id            BIGSERIAL PRIMARY KEY,
+    code          VARCHAR,
+    name          VARCHAR,
+    owner         VARCHAR,
+    address       VARCHAR,
+    sign_date     TIMESTAMP,
+    delivery_date TIMESTAMP,
+    description   TEXT,
+    created_at    TIMESTAMP,
+    updated_at    TIMESTAMP,
+    created_by    BIGINT,
+    updated_by    BIGINT
+);
+
+CREATE TABLE summary_table
+(
+    id         BIGSERIAL PRIMARY KEY,
+    name       VARCHAR,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by BIGINT,
+    updated_by BIGINT
+);
+
+CREATE TABLE steel_project_table_map
+(
+    id               BIGSERIAL PRIMARY KEY,
+    steel_project_id BIGINT REFERENCES steel_project (id),
+    summary_table_id BIGINT REFERENCES summary_table (id),
+    created_at       TIMESTAMP,
+    updated_at       TIMESTAMP,
+    created_by       BIGINT,
+    updated_by       BIGINT
+);
+
+CREATE TABLE assembly
+(
+    id         BIGSERIAL PRIMARY KEY,
+    name       VARCHAR,
+    quantity   NUMERIC,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by BIGINT,
+    updated_by BIGINT
+);
+
+CREATE TABLE summary_table_assembly_map
+(
+    id               BIGSERIAL PRIMARY KEY,
+    summary_table_id BIGINT references summary_table (id),
+    assembly_id      BIGINT references assembly (id),
+    created_at       TIMESTAMP,
+    updated_at       TIMESTAMP,
+    created_by       BIGINT,
+    updated_by       BIGINT
+);
+
+CREATE TABLE steel_category
+(
+    id         BIGSERIAL PRIMARY KEY,
+    url        VARCHAR,
+    hasL1      BOOLEAN,
+    hasL2      BOOLEAN,
+    hasL3      BOOLEAN,
+    hasM       BOOLEAN,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by BIGINT,
+    updated_by BIGINT
+);
+
+CREATE TABLE steel
+(
+    id                BIGSERIAL PRIMARY KEY,
+    item_no           NUMERIC,
+    steel_category_id BIGINT REFERENCES steel_category (id),
+    diameter          NUMERIC,
+    length            NUMERIC,
+    quantity          NUMERIC,
+    totalQuantity     NUMERIC,
+    totalLength       NUMERIC,
+    totalWeight       NUMERIC,
+    created_at        TIMESTAMP,
+    updated_at        TIMESTAMP,
+    created_by        BIGINT,
+    updated_by        BIGINT
+);
+
+CREATE TABLE summary
+(
+    id               BIGSERIAL PRIMARY KEY,
+    steel_project_id BIGINT references steel_project (id),
+    diameter         NUMERIC,
+    totalWeight      NUMERIC,
+    totalLength      NUMERIC,
+    created_at       TIMESTAMP,
+    updated_at       TIMESTAMP,
+    created_by       BIGINT,
+    updated_by       BIGINT
+);
+
 
 
 

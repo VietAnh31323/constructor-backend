@@ -16,7 +16,7 @@ public interface AccountMapper extends EntityMapper<AccountEntity, AccountDto> {
     AccountEntity toEntity(SignUpRequest request);
 
     @Mapping(target = "username", source = "token.subject")
-    @Mapping(target = "tokenType", expression = "java(AuthScheme.BEARER.getValue())")
+    @Mapping(target = "authScheme", expression = "java(AuthScheme.BEARER.getValue())")
     @Mapping(target = "token", source = "token.tokenValue")
     @Mapping(target = "refreshToken", source = "refreshToken.tokenValue")
     @Mapping(target = "tokenExpiry", source = "token.expiresAt")
@@ -24,7 +24,7 @@ public interface AccountMapper extends EntityMapper<AccountEntity, AccountDto> {
     AccountDto toDto(Jwt token, Jwt refreshToken);
 
     @Mapping(target = "username", source = "token.subject")
-    @Mapping(target = "tokenType", expression = "java(AuthScheme.BEARER.getValue())")
+    @Mapping(target = "authScheme", expression = "java(AuthScheme.BEARER.getValue())")
     @Mapping(target = "token", source = "token.tokenValue")
     @Mapping(target = "tokenExpiry", source = "token.expiresAt")
     AccountDto toDto(Jwt token);
