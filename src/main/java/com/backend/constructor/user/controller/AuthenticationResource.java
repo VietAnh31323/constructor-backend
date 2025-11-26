@@ -1,7 +1,6 @@
 package com.backend.constructor.user.controller;
 
 import com.backend.constructor.common.base.dto.response.IdResponse;
-import com.backend.constructor.common.base.dto.response.Response;
 import com.backend.constructor.user.dto.request.SignInRequest;
 import com.backend.constructor.user.dto.request.SignUpRequest;
 import com.backend.constructor.user.dto.response.AccountDto;
@@ -16,15 +15,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("/")
 public interface AuthenticationResource {
     @PostMapping(value = "/sign-up")
-    Response<IdResponse> signUp(@Valid @RequestBody SignUpRequest request);
+    IdResponse signUp(@Valid @RequestBody SignUpRequest request);
 
     @PostMapping("/sign-in")
-    Response<AccountDto> signIn(@Valid @RequestBody SignInRequest request, final HttpServletResponse response);
+    AccountDto signIn(@Valid @RequestBody SignInRequest request, final HttpServletResponse response);
 
     @PreAuthorize("hasAnyAuthority('SCOPE_REFRESH_TOKEN')")
     @PostMapping("/refresh-token")
-    Response<AccountDto> getAccessTokenByRefreshToken(HttpServletRequest req);
+    AccountDto getAccessTokenByRefreshToken(HttpServletRequest req);
 
     @PostMapping("/logout")
-    Response<String> logout(HttpServletRequest request, HttpServletResponse response);
+    Boolean logout(HttpServletRequest request, HttpServletResponse response);
 }

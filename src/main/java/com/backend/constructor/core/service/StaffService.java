@@ -27,6 +27,7 @@ public class StaffService implements StaffApi {
     @Transactional
     public IdResponse create(StaffDto input) {
         input.trimData();
+        input.setId(null);
         StaffEntity staffEntity = staffMapper.toEntity(input);
         staffEntity.setName(joinName(input.getFirstName(), input.getLastName()));
         staffRepository.save(staffEntity);

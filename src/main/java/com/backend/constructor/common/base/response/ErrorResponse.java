@@ -21,7 +21,7 @@ public class ErrorResponse extends Response {
 
     @Builder
     public ErrorResponse(String message, String traceId, List<ErrorDetail> errorCodes) {
-        super(message != null ? message : "Có lỗi xảy ra, xin vui lòng thử lại!", traceId);
+        super("Có lỗi xảy ra, xin vui lòng thử lại!", traceId);
         if (errorCodes != null) {
             this.errorCodes.addAll(errorCodes);
         }
@@ -44,14 +44,6 @@ public class ErrorResponse extends Response {
         return resp;
     }
 
-    @Getter
-    public static class ErrorDetail {
-        private final String code;
-        private final String message;
-
-        public ErrorDetail(String code, String message) {
-            this.code = code;
-            this.message = message;
-        }
+    public record ErrorDetail(String code, String message) {
     }
 }

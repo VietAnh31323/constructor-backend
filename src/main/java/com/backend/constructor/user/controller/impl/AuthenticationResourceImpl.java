@@ -1,7 +1,6 @@
 package com.backend.constructor.user.controller.impl;
 
 import com.backend.constructor.common.base.dto.response.IdResponse;
-import com.backend.constructor.common.base.dto.response.Response;
 import com.backend.constructor.user.controller.AuthenticationResource;
 import com.backend.constructor.user.dto.request.SignInRequest;
 import com.backend.constructor.user.dto.request.SignUpRequest;
@@ -24,23 +23,23 @@ public class AuthenticationResourceImpl implements AuthenticationResource {
     private final LogoutHandler logoutHandler;
 
     @Override
-    public Response<IdResponse> signUp(final SignUpRequest request) {
-        return Response.ok(authenticationService.signUp(request));
+    public IdResponse signUp(final SignUpRequest request) {
+        return authenticationService.signUp(request);
     }
 
     @Override
-    public Response<AccountDto> signIn(final SignInRequest request, final HttpServletResponse response) {
-        return Response.ok(authenticationService.signIn(request, response));
+    public AccountDto signIn(final SignInRequest request, final HttpServletResponse response) {
+        return authenticationService.signIn(request, response);
     }
 
     @Override
-    public Response<AccountDto> getAccessTokenByRefreshToken(final HttpServletRequest request) {
-        return Response.ok(authenticationService.accessTokenByRefreshToken(request));
+    public AccountDto getAccessTokenByRefreshToken(final HttpServletRequest request) {
+        return authenticationService.accessTokenByRefreshToken(request);
     }
 
     @Override
-    public Response<String> logout(HttpServletRequest request, HttpServletResponse response) {
+    public Boolean logout(HttpServletRequest request, HttpServletResponse response) {
         logoutHandler.logout(request, response, SecurityContextHolder.getContext().getAuthentication());
-        return Response.ok("true");
+        return Boolean.TRUE;
     }
 }

@@ -1,6 +1,5 @@
 package com.backend.constructor.user.controller.impl;
 
-import com.backend.constructor.common.base.dto.response.Response;
 import com.backend.constructor.user.dto.UserInfoDto;
 import com.backend.constructor.user.service.impl.UserService;
 import jakarta.validation.Valid;
@@ -17,12 +16,12 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public Response<UserInfoDto> getUserInfo(@RequestParam Long userId) {
-        return Response.ok(userService.getUserInfo(userId));
+    public UserInfoDto getUserInfo(@RequestParam Long userId) {
+        return userService.getUserInfo(userId);
     }
 
     @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Response<Long> updateUserInfo(@Valid UserInfoDto userInfoDto) {
-        return Response.ok(userService.updateUserInfo(userInfoDto));
+    public Long updateUserInfo(@Valid UserInfoDto userInfoDto) {
+        return userService.updateUserInfo(userInfoDto);
     }
 }
