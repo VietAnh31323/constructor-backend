@@ -1,4 +1,4 @@
-package com.backend.constructor.app.dto;
+package com.backend.constructor.app.dto.staff;
 
 import lombok.*;
 

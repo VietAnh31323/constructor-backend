@@ -1,6 +1,6 @@
 package com.backend.constructor.core.port.repository;
 
-import com.backend.constructor.app.dto.StaffFilterParam;
+import com.backend.constructor.app.dto.staff.StaffFilterParam;
 import com.backend.constructor.common.base.repository.BaseRepository;
 import com.backend.constructor.core.domain.entity.StaffEntity;
 import org.springframework.data.domain.Page;

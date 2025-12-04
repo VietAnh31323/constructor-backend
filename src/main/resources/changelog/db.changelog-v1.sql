@@ -82,19 +82,19 @@ CREATE TABLE account_staff_map
 
 CREATE TABLE customer
 (
-    id           BIGSERIAL PRIMARY KEY,
-    code         VARCHAR,
-    name         VARCHAR,
-    phone        VARCHAR,
-    email        VARCHAR,
-    state        VARCHAR,
-    is_potential BOOLEAN,
-    description  TEXT,
-    note         TEXT,
-    created_at   TIMESTAMP,
-    updated_at   TIMESTAMP,
-    created_by   BIGINT,
-    updated_by   BIGINT
+    id             BIGSERIAL PRIMARY KEY,
+    code           VARCHAR,
+    name           VARCHAR,
+    phone          VARCHAR,
+    email          VARCHAR,
+    contact_status VARCHAR,
+    is_potential   BOOLEAN,
+    description    TEXT,
+    note           TEXT,
+    created_at     TIMESTAMP,
+    updated_at     TIMESTAMP,
+    created_by     BIGINT,
+    updated_by     BIGINT
 );
 
 CREATE TABLE category

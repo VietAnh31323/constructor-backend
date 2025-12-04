@@ -1,6 +1,6 @@
 package com.backend.constructor.infras.repository;
 
-import com.backend.constructor.app.dto.StaffFilterParam;
+import com.backend.constructor.app.dto.staff.StaffFilterParam;
 import com.backend.constructor.common.base.repository.JpaRepositoryAdapter;
 import com.backend.constructor.common.base.repository.filter.Filter;
 import com.backend.constructor.common.base.repository.filter.FilterFlag;

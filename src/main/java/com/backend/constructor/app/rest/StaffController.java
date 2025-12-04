@@ -1,9 +1,9 @@
 package com.backend.constructor.app.rest;
 
 import com.backend.constructor.app.api.StaffApi;
-import com.backend.constructor.app.dto.StaffDto;
-import com.backend.constructor.app.dto.StaffFilterParam;
-import com.backend.constructor.app.dto.StaffOutput;
+import com.backend.constructor.app.dto.staff.StaffDto;
+import com.backend.constructor.app.dto.staff.StaffFilterParam;
+import com.backend.constructor.app.dto.staff.StaffOutput;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
