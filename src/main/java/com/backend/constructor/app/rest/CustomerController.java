@@ -4,7 +4,6 @@ import com.backend.constructor.app.api.CustomerApi;
 import com.backend.constructor.app.dto.customer.CustomerDto;
 import com.backend.constructor.app.dto.customer.CustomerFilterParam;
 import com.backend.constructor.common.base.dto.response.IdResponse;
-import com.backend.constructor.core.service.CustomerService;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/customer")
 @RequiredArgsConstructor
 public class CustomerController implements CustomerApi {
-    private final CustomerService customerService;
+    private final CustomerApi customerService;
 
     @Override
     @PostMapping
