@@ -53,7 +53,7 @@ public class SecurityConfiguration {
         http
                 .securityMatchers(matchers -> matchers
                                 .requestMatchers(
-                                        "/api/v1/staff/**"
+                                        "/api/v1/**"
                                 )
                 )
                 .cors(withDefaults())

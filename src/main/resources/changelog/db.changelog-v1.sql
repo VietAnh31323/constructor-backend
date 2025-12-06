@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
 CREATE TABLE account
 (
     id         BIGSERIAL PRIMARY KEY,
@@ -167,6 +169,7 @@ CREATE TABLE progress
     code        VARCHAR,
     name        VARCHAR,
     description TEXT,
+    is_active   BOOLEAN,
     created_at  TIMESTAMP,
     updated_at  TIMESTAMP,
     created_by  BIGINT,
