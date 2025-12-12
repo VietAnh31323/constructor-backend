@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
 CREATE TABLE account
 (
     id         BIGSERIAL PRIMARY KEY,
@@ -53,7 +55,10 @@ CREATE TABLE staff
 (
     id          BIGSERIAL PRIMARY KEY,
     code        VARCHAR,
+    email       VARCHAR,
     name        VARCHAR,
+    first_name  VARCHAR,
+    last_name   VARCHAR,
     avatar      TEXT,
     birth_date  TIMESTAMP,
     address     VARCHAR,
@@ -79,19 +84,19 @@ CREATE TABLE account_staff_map
 
 CREATE TABLE customer
 (
-    id           BIGSERIAL PRIMARY KEY,
-    code         VARCHAR,
-    name         VARCHAR,
-    phone        VARCHAR,
-    email        VARCHAR,
-    state        VARCHAR,
-    is_potential BOOLEAN,
-    description  TEXT,
-    note         TEXT,
-    created_at   TIMESTAMP,
-    updated_at   TIMESTAMP,
-    created_by   BIGINT,
-    updated_by   BIGINT
+    id             BIGSERIAL PRIMARY KEY,
+    code           VARCHAR,
+    name           VARCHAR,
+    phone          VARCHAR,
+    email          VARCHAR,
+    contact_status VARCHAR,
+    is_potential   BOOLEAN,
+    description    TEXT,
+    note           TEXT,
+    created_at     TIMESTAMP,
+    updated_at     TIMESTAMP,
+    created_by     BIGINT,
+    updated_by     BIGINT
 );
 
 CREATE TABLE category
@@ -164,6 +169,7 @@ CREATE TABLE progress
     code        VARCHAR,
     name        VARCHAR,
     description TEXT,
+    is_active   BOOLEAN,
     created_at  TIMESTAMP,
     updated_at  TIMESTAMP,
     created_by  BIGINT,

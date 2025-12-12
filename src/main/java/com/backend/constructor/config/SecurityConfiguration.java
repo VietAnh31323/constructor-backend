@@ -52,19 +52,9 @@ public class SecurityConfiguration {
     public SecurityFilterChain publicApiSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .securityMatchers(matchers -> matchers
-                        .requestMatchers(
-                                "/sign-in/**",
-                                "/sign-up/**",
-                                "/google/sign-in/**",
-                                "/api/movies/**",
-                                "/api/showtimes/**",
-                                "/api/cinemas/**",
-                                "/api/cities/**",
-                                "/api/genres/**",
-                                "/api/contributors/**",
-                                "/api/payment/**",
-                                "/api/users/**"
-                        )
+                                .requestMatchers(
+                                        "/api/v1/**"
+                                )
                 )
                 .cors(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
