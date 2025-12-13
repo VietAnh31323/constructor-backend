@@ -34,7 +34,6 @@ public class CategoryService implements CategoryApi {
     @Transactional
     public IdResponse update(CategoryDto input) {
         input.trimData();
-        input.setId(null);
         CategoryEntity categoryEntity = categoryRepository.getCategoryById(input.getId());
         categoryMapper.update(input, categoryEntity);
         categoryRepository.save(categoryEntity);
