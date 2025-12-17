@@ -330,6 +330,9 @@ CREATE TABLE summary
     updated_by       BIGINT
 );
 
+alter table customer
+    add column address varchar
+
 
 
 

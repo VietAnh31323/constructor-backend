@@ -4,7 +4,6 @@ import com.backend.constructor.app.api.CustomerApi;
 import com.backend.constructor.app.dto.customer.CustomerDto;
 import com.backend.constructor.app.dto.customer.CustomerFilterParam;
 import com.backend.constructor.common.base.dto.response.IdResponse;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

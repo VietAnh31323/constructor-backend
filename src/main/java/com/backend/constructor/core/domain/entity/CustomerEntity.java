@@ -25,6 +25,8 @@ public class CustomerEntity extends BaseEntity {
 
     private String email;
 
+    private String address;
+
     @Enumerated(EnumType.STRING)
     private ContactStatus contactStatus;
 
