@@ -1,6 +1,7 @@
 package com.backend.constructor.infras.repository;
 
 import com.backend.constructor.common.base.repository.JpaRepositoryAdapter;
+import com.backend.constructor.common.enums.ERole;
 import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.core.domain.entity.AccountEntity;
 import com.backend.constructor.core.port.repository.AccountRepository;
@@ -14,6 +15,11 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AccountRepositoryImpl extends JpaRepositoryAdapter<AccountEntity> implements AccountRepository {
     private final AccountJpaRepository accountJpaRepository;
+
+    @Override
+    public Optional<AccountEntity> findByUsernameAndRole(String username, ERole role) {
+        return accountJpaRepository.findByUsernameAndRole(username, role);
+    }
 
     @Override
     public Optional<AccountEntity> findByUsername(String username) {

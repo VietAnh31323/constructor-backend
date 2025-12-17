@@ -17,6 +17,7 @@ public class StaffDto {
 
     private String code;
 
+    @NotNull
     private String email;
 
     private Position position;
@@ -37,6 +38,8 @@ public class StaffDto {
     private String gender;
 
     private String description;
+
+    private String password;
 
     public void trimData() {
         this.code = StringUtils.trim(this.code);

@@ -89,7 +89,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         final var jwtRefreshToken = tokenProvider.createRefreshToken(authentication);
 
         final var username = tokenProvider.getUserName(jwtAccessToken);
-        final var account = accountRepository.findByUsername(username)
+        final var account = accountRepository.findByUsernameAndRole(username, request.eRole())
                 .orElseThrow(() -> {
                     log.error("[SignInService:signIn] Account :{} not found", username);
                     return new ResponseStatusException(HttpStatus.NOT_FOUND, "ACCOUNT NOT FOUND");
