@@ -43,4 +43,6 @@ public class StaffEntity extends BaseEntity {
     private String gender;
 
     private String description;
+
+    private String genPassword;
 }

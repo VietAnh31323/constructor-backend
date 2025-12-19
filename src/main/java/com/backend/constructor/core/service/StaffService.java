@@ -42,9 +42,11 @@ public class StaffService implements StaffApi {
     }
 
     private void createAccount(StaffEntity staffEntity) {
+        String password = generateDefaultPassword(8);
+        staffEntity.setGenPassword(password);
         SignUpRequest request = SignUpRequest.builder()
                 .username(staffEntity.getEmail())
-                .password(generateDefaultPassword(8))
+                .password(password)
                 .build();
         IdResponse idResponse = authenticationService.signUp(request);
         internalAccountStaffMapService.createAccountMap(staffEntity.getId(), idResponse.getId());

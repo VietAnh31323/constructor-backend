@@ -39,7 +39,7 @@ public class StaffDto {
 
     private String description;
 
-    private String password;
+    private String genPassword;
 
     public void trimData() {
         this.code = StringUtils.trim(this.code);
