@@ -41,7 +41,7 @@ CREATE TABLE token
 (
     id          BIGSERIAL PRIMARY KEY,
     account_id  BIGINT,
-    token       VARCHAR,
+    token       TEXT,
     type        VARCHAR,
     expiry_date TIMESTAMP,
     revoked     BOOLEAN,

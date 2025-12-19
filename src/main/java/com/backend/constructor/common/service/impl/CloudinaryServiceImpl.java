@@ -32,7 +32,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         String extension = getFileName(file.getOriginalFilename())[1];
         File fileUpload = convert(file);
 
-        String fullPublicId = "dvcinema/" + publicValue;
+        String fullPublicId = "constructor/" + publicValue;
 
         cloudinary.uploader().upload(fileUpload, ObjectUtils.asMap("public_id", fullPublicId));
         cleanDisk(fileUpload);

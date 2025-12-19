@@ -39,7 +39,7 @@ public class AccountInit implements CommandLineRunner {
                             .build();
                     return roleRepository.save(adminRoleEntity);
                 });
-        String adminUsername = "admin";
+        String adminUsername = "admin@gmail.com";
         String adminPassword = "admin";
         if (accountRepository.existsByUsername(adminUsername)) {
             return;
