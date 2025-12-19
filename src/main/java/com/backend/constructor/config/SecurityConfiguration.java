@@ -53,8 +53,8 @@ public class SecurityConfiguration {
         http
                 .securityMatchers(matchers -> matchers
                         .requestMatchers(
-                                "**/sign-up",
-                                "**/sign-in",
+                                "/sign-up",
+                                "/sign-in",
                                 "/api/v1/**"
                         )
                 )
