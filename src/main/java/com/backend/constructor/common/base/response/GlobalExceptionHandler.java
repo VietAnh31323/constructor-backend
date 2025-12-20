@@ -63,7 +63,7 @@ public class GlobalExceptionHandler {
                 null,
                 null
         );
-        response.addError("error.systemError", "Hệ thống đang bận, vui lòng thử lại sau");
+        response.addError("500", ex.getMessage());
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
