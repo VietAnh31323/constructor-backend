@@ -5,6 +5,7 @@ import com.backend.constructor.common.enums.AccountStatus;
 import com.backend.constructor.common.enums.ERole;
 import com.backend.constructor.common.enums.TokenType;
 import com.backend.constructor.common.error.BusinessException;
+import com.backend.constructor.common.service.MailService;
 import com.backend.constructor.config.languages.Translator;
 import com.backend.constructor.core.domain.entity.AccountEntity;
 import com.backend.constructor.core.domain.entity.AccountRoleMapEntity;
@@ -59,6 +60,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     //Mapper
     AccountMapper accountMapper;
     private final AccountRoleMapRepository accountRoleMapRepository;
+    private final MailService mailService;
 
     @Override
     @Transactional
@@ -72,6 +74,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         entity.setStatus(AccountStatus.ACTIVE);
         accountRepository.save(entity);
         saveAccountRoleMap(entity.getId(), role);
+        mailService.sendPasswordEmail(entity.getUsername(), request.password(), role.getName().getValue());
         return IdResponse.builder().id(entity.getId()).build();
     }
 
