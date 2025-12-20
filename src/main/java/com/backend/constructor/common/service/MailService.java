@@ -7,4 +7,7 @@ public interface MailService {
     void sendPasswordEmail(String toEmail,
                            String password,
                            String role);
+
+    void sendOtp(String toEmail,
+                 String otp);
 }

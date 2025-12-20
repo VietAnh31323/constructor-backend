@@ -23,6 +23,7 @@ public class GlobalExceptionHandler {
                 null,
                 null
         );
+        MessageResponseContext.setResourceMessage(ex.getMessage());
         response.addError(ex.getErrorCode(), ex.getMessage());
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
@@ -32,6 +33,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Response> handleValidationException(MethodArgumentNotValidException ex) {
         ErrorResponse response = new ErrorResponse("Dữ liệu không hợp lệ", null, null);
+        MessageResponseContext.setResourceMessage(ex.getMessage());
 
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             String code = "validation." + fieldError.getField();
@@ -44,6 +46,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Response> handleConstraintViolation(ConstraintViolationException ex) {
         ErrorResponse response = new ErrorResponse("Dữ liệu không hợp lệ", null, null);
+        MessageResponseContext.setResourceMessage(ex.getMessage());
 
         for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
             String field = violation.getPropertyPath().toString();
@@ -57,6 +60,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Response> handleUnexpectedException(Exception ex) {
         log.error("Lỗi hệ thống không xác định", ex);
+        MessageResponseContext.setResourceMessage(ex.getMessage());
 
         ErrorResponse response = new ErrorResponse(
                 "Có lỗi xảy ra, xin vui lòng thử lại!",

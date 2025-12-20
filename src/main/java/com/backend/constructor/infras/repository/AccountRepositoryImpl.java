@@ -1,6 +1,7 @@
 package com.backend.constructor.infras.repository;
 
 import com.backend.constructor.common.base.repository.JpaRepositoryAdapter;
+import com.backend.constructor.common.enums.AccountStatus;
 import com.backend.constructor.common.enums.ERole;
 import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.core.domain.entity.AccountEntity;
@@ -17,13 +18,14 @@ public class AccountRepositoryImpl extends JpaRepositoryAdapter<AccountEntity> i
     private final AccountJpaRepository accountJpaRepository;
 
     @Override
-    public Optional<AccountEntity> findByUsernameAndRole(String username, ERole role) {
-        return accountJpaRepository.findByUsernameAndRole(username, role);
+    public AccountEntity findByUsernameAndRole(String username, ERole role) {
+        return accountJpaRepository.findByUsernameAndRole(username, role)
+                .orElseThrow(() -> BusinessException.exception("ACCOUNT NOT FOUND"));
     }
 
     @Override
     public Optional<AccountEntity> findByUsername(String username) {
-        return accountJpaRepository.findByUsername(username);
+        return accountJpaRepository.findByUsernameAndStatus(username, AccountStatus.ACTIVE);
     }
 
     @Override

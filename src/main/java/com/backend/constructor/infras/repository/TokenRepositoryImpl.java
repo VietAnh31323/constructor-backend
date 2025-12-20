@@ -22,7 +22,12 @@ public class TokenRepositoryImpl extends JpaRepositoryAdapter<TokenEntity> imple
 
     @Override
     public Optional<TokenEntity> findByRefreshToken(String refreshToken) {
-        return tokenJpaRepository.findByTokenAndType(refreshToken, TokenType.REFRESH);
+        return tokenJpaRepository.findByTokenAndTypeAndRevokedIsNullOrRevokedIsFalse(refreshToken, TokenType.REFRESH);
+    }
+
+    @Override
+    public Optional<TokenEntity> findByResetToken(String resetToken) {
+        return tokenJpaRepository.findByTokenAndTypeAndRevokedIsNullOrRevokedIsFalse(resetToken, TokenType.RESET_PASSWORD);
     }
 
     @Override

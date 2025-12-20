@@ -1,6 +1,7 @@
 package com.backend.constructor.infras.repository.jpa;
 
 import com.backend.constructor.common.base.repository.BaseJpaRepository;
+import com.backend.constructor.common.enums.AccountStatus;
 import com.backend.constructor.common.enums.ERole;
 import com.backend.constructor.core.domain.entity.AccountEntity;
 import org.springframework.data.jpa.repository.Query;
@@ -24,5 +25,5 @@ public interface AccountJpaRepository extends BaseJpaRepository<AccountEntity> {
 
     boolean existsByUsername(String username);
 
-    Optional<AccountEntity> findByUsername(String username);
+    Optional<AccountEntity> findByUsernameAndStatus(String username, AccountStatus status);
 }

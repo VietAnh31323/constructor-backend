@@ -45,4 +45,28 @@ public class MailServiceImpl implements MailService {
             throw new BusinessException("400", "Gửi email thất bại");
         }
     }
+
+    @Async
+    @Override
+    public void sendOtp(String toEmail, String otp) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
+
+            helper.setTo(toEmail);
+            helper.setSubject("Gửi mật khẩu từ hệ thống constructor");
+
+            // 1. Setup Thymeleaf Context
+            Context context = new Context();
+            context.setVariable("otp", otp);
+
+            // 2. Process template to String
+            String htmlContent = templateEngine.process("email/reset-password-email.html", context);
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+            log.info("Send OTP email to {} success", toEmail);
+        } catch (Exception e) {
+            throw new BusinessException("400", "Gửi OTP email thất bại");
+        }
+    }
 }
