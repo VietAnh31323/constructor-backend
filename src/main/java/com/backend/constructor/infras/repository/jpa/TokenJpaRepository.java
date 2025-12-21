@@ -9,5 +9,5 @@ import java.util.Optional;
 
 @Repository
 public interface TokenJpaRepository extends BaseJpaRepository<TokenEntity> {
-    Optional<TokenEntity> findByTokenAndType(String token, TokenType type);
+    Optional<TokenEntity> findByTokenAndTypeAndRevokedIsNullOrRevokedIsFalse(String token, TokenType type);
 }

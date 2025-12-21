@@ -331,7 +331,20 @@ CREATE TABLE summary
 );
 
 alter table customer
-    add column address varchar
+    add column address varchar;
+
+CREATE TABLE password_reset
+(
+    id         BIGSERIAL PRIMARY KEY,
+    account_id BIGINT    NOT NULL,
+    otp_hash   TEXT      NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used       BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by BIGINT,
+    updated_by BIGINT
+);
 
 
 

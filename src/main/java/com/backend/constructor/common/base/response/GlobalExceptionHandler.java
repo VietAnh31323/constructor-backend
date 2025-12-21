@@ -3,6 +3,7 @@ package com.backend.constructor.common.base.response;
 import com.backend.constructor.common.error.BusinessException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +15,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+    private final HandleMessage handleMessage;
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Response> handleBusinessException(BusinessException ex) {
@@ -23,7 +26,7 @@ public class GlobalExceptionHandler {
                 null,
                 null
         );
-        response.addError(ex.getErrorCode(), ex.getMessage());
+        response.addError(ex.getErrorCode(), handleMessage.getMessage(ex.getMessage(), ex));
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
@@ -34,7 +37,7 @@ public class GlobalExceptionHandler {
         ErrorResponse response = new ErrorResponse("Dữ liệu không hợp lệ", null, null);
 
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
-            String code = "validation." + fieldError.getField();
+            String code = fieldError.getField();
             response.addError(code, fieldError.getDefaultMessage());
         }
 
@@ -46,8 +49,7 @@ public class GlobalExceptionHandler {
         ErrorResponse response = new ErrorResponse("Dữ liệu không hợp lệ", null, null);
 
         for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
-            String field = violation.getPropertyPath().toString();
-            String code = "validation." + field;
+            String code = violation.getPropertyPath().toString();
             response.addError(code, violation.getMessage());
         }
 
@@ -63,7 +65,7 @@ public class GlobalExceptionHandler {
                 null,
                 null
         );
-        response.addError("error.systemError", "Hệ thống đang bận, vui lòng thử lại sau");
+        response.addError("500", ex.getMessage());
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }

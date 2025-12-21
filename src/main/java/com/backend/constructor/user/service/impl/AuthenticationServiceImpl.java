@@ -5,18 +5,17 @@ import com.backend.constructor.common.enums.AccountStatus;
 import com.backend.constructor.common.enums.ERole;
 import com.backend.constructor.common.enums.TokenType;
 import com.backend.constructor.common.error.BusinessException;
+import com.backend.constructor.common.service.MailService;
 import com.backend.constructor.config.languages.Translator;
-import com.backend.constructor.core.domain.entity.AccountEntity;
-import com.backend.constructor.core.domain.entity.AccountRoleMapEntity;
-import com.backend.constructor.core.domain.entity.RoleEntity;
-import com.backend.constructor.core.domain.entity.TokenEntity;
+import com.backend.constructor.core.domain.entity.*;
+import com.backend.constructor.core.domain.enums.AuthScheme;
 import com.backend.constructor.core.port.mapper.AccountMapper;
-import com.backend.constructor.core.port.repository.AccountRepository;
-import com.backend.constructor.core.port.repository.AccountRoleMapRepository;
-import com.backend.constructor.core.port.repository.RoleRepository;
-import com.backend.constructor.core.port.repository.TokenRepository;
+import com.backend.constructor.core.port.repository.*;
+import com.backend.constructor.core.service.HelperService;
+import com.backend.constructor.user.dto.request.ResetPasswordDto;
 import com.backend.constructor.user.dto.request.SignInRequest;
 import com.backend.constructor.user.dto.request.SignUpRequest;
+import com.backend.constructor.user.dto.request.VerifyOtpDto;
 import com.backend.constructor.user.dto.response.AccountDto;
 import com.backend.constructor.user.security.jwt.TokenProvider;
 import com.backend.constructor.user.service.AuthenticationService;
@@ -37,6 +36,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 
 
 @Slf4j
@@ -59,6 +62,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     //Mapper
     AccountMapper accountMapper;
     private final AccountRoleMapRepository accountRoleMapRepository;
+    private final MailService mailService;
+    private final PasswordResetRepository passwordResetRepository;
 
     @Override
     @Transactional
@@ -72,6 +77,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         entity.setStatus(AccountStatus.ACTIVE);
         accountRepository.save(entity);
         saveAccountRoleMap(entity.getId(), role);
+        mailService.sendPasswordEmail(entity.getUsername(), request.password(), role.getName().getValue());
         return IdResponse.builder().id(entity.getId()).build();
     }
 
@@ -89,11 +95,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         final var jwtRefreshToken = tokenProvider.createRefreshToken(authentication);
 
         final var username = tokenProvider.getUserName(jwtAccessToken);
-        final var account = accountRepository.findByUsernameAndRole(username, request.eRole())
-                .orElseThrow(() -> {
-                    log.error("[SignInService:signIn] Account :{} not found", username);
-                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "ACCOUNT NOT FOUND");
-                });
+        final var account = accountRepository.findByUsernameAndRole(username, request.eRole());
 
         if (account.getStatus().equals(AccountStatus.INACTIVE)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, translator.toLocale("CST001"));
@@ -111,7 +113,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         //Find refreshToken from database and should not be revoked : Same thing can be done through filter.
         var refreshTokenEntity = tokenRepository.findByRefreshToken(refreshToken)
                 .filter(tokens -> !tokens.getRevoked())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Refresh token revoked"));
+                .orElseThrow(() -> BusinessException.exception("Refresh token revoked"));
 
         final var account = accountRepository.getAccountById(refreshTokenEntity.getAccountId());
 
@@ -124,6 +126,66 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         final var jwtAccessToken = tokenProvider.createToken(authentication);
 
         return accountMapper.toDto(jwtAccessToken);
+    }
+
+    @Override
+    @Transactional
+    public void forgotPassword(String email) {
+        Optional<AccountEntity> account = accountRepository.findByUsername(email);
+        if (account.isEmpty()) {
+            return;
+        }
+        AccountEntity accountEntity = account.get();
+        String generateOtp = HelperService.generateOtp();
+        final var now = Instant.now();
+        Instant expiresAt = now.plus(5, ChronoUnit.MINUTES);
+        PasswordResetEntity passwordResetEntity = PasswordResetEntity.builder()
+                .accountId(accountEntity.getId())
+                .expiresAt(expiresAt)
+                .otpHash(passwordEncoder.encode(generateOtp))
+                .used(false)
+                .build();
+        passwordResetRepository.save(passwordResetEntity);
+        mailService.sendOtp(accountEntity.getUsername(), generateOtp);
+    }
+
+    @Override
+    @Transactional
+    public VerifyOtpDto verifyOtp(VerifyOtpDto input) {
+        Optional<AccountEntity> optionalAccount = accountRepository.findByUsername(input.username());
+        if (optionalAccount.isEmpty()) {
+            throw BusinessException.exception("CST000");
+        }
+        AccountEntity accountEntity = optionalAccount.get();
+        PasswordResetEntity otpValid = passwordResetRepository.getByAccountIdAndOtpValid(accountEntity.getId());
+        if (!passwordEncoder.matches(input.otp(), otpValid.getOtpHash())) {
+            throw BusinessException.exception("CST011");
+        }
+        otpValid.setUsed(true);
+        Jwt jwt = tokenProvider.createResetToken(accountEntity.getUsername());
+        saveResetToken(accountEntity, jwt);
+        return VerifyOtpDto.builder()
+                .username(accountEntity.getUsername())
+                .otp(input.otp())
+                .token(jwt.getTokenValue())
+                .authScheme(AuthScheme.BEARER.toString())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(ResetPasswordDto input, HttpServletRequest req) {
+        final var resetToken = tokenProvider.resolveToken(req);
+        if (ObjectUtils.isEmpty(resetToken)) {
+            throw BusinessException.exception("CST009");
+        }
+        var refreshTokenEntity = tokenRepository.findByResetToken(resetToken);
+        if (!tokenProvider.validateToken(refreshTokenEntity.getToken())) {
+            throw BusinessException.exception("CST009");
+        }
+        AccountEntity accountEntity = accountRepository.getAccountById(refreshTokenEntity.getAccountId());
+        accountEntity.setPassword(passwordEncoder.encode(input.newPassword()));
+        accountRepository.save(accountEntity);
     }
 
     private AccountDto getAccountDto(HttpServletResponse response, AccountEntity account, Jwt jwtAccessToken, Jwt jwtRefreshToken) {
@@ -157,6 +219,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         final var refreshTokenEntity = new TokenEntity();
         refreshTokenEntity.setToken(jwt.getTokenValue());
         refreshTokenEntity.setType(TokenType.REFRESH);
+        refreshTokenEntity.setRevoked(false);
         refreshTokenEntity.setAccountId(account.getId());
         tokenRepository.save(refreshTokenEntity);
     }
@@ -167,5 +230,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .roleId(role.getId())
                 .build();
         accountRoleMapRepository.save(accountRoleMapEntity);
+    }
+
+    private void saveResetToken(AccountEntity account, Jwt jwt) {
+        final var resetToken = new TokenEntity();
+        resetToken.setToken(jwt.getTokenValue());
+        resetToken.setType(TokenType.RESET_PASSWORD);
+        resetToken.setRevoked(false);
+        resetToken.setAccountId(account.getId());
+        tokenRepository.save(resetToken);
     }
 }

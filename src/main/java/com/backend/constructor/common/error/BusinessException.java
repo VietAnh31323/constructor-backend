@@ -92,7 +92,7 @@ public class BusinessException extends RuntimeException {
     }
 
     public static BusinessException exception(String message) {
-        return builder().message(message).build();
+        return builder().code("400").message(message).build();
     }
 
     public static BusinessException exception(String errorCode, String message) {

@@ -3,6 +3,7 @@ package com.backend.constructor.infras.repository;
 import com.backend.constructor.common.base.repository.JpaRepositoryAdapter;
 import com.backend.constructor.common.base.repository.filter.Filter;
 import com.backend.constructor.common.enums.TokenType;
+import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.core.domain.entity.TokenEntity;
 import com.backend.constructor.core.domain.entity.TokenEntity_;
 import com.backend.constructor.core.port.repository.TokenRepository;
@@ -22,7 +23,24 @@ public class TokenRepositoryImpl extends JpaRepositoryAdapter<TokenEntity> imple
 
     @Override
     public Optional<TokenEntity> findByRefreshToken(String refreshToken) {
-        return tokenJpaRepository.findByTokenAndType(refreshToken, TokenType.REFRESH);
+        return tokenJpaRepository.findByTokenAndTypeAndRevokedIsNullOrRevokedIsFalse(refreshToken, TokenType.REFRESH);
+    }
+
+    @Override
+    public TokenEntity findByResetToken(String resetToken) {
+        Filter<TokenEntity> filter = Filter.builder()
+                .search()
+                .isNull(TokenEntity_.REVOKED)
+                .isEqual(TokenEntity_.REVOKED, false)
+                .filter()
+                .isEqual(TokenEntity_.TOKEN, resetToken)
+                .withContext(entityManager)
+                .build(TokenEntity.class);
+        List<TokenEntity> tokenEntities = filter.getList();
+        if (tokenEntities.isEmpty()) {
+            throw BusinessException.exception("CST009");
+        }
+        return tokenEntities.getFirst();
     }
 
     @Override

@@ -9,7 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface AccountRepository extends BaseRepository<AccountEntity> {
-    Optional<AccountEntity> findByUsernameAndRole(String username, ERole role);
+    AccountEntity findByUsernameAndRole(String username, ERole role);
 
     Optional<AccountEntity> findByUsername(String username);
 

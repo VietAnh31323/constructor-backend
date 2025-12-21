@@ -1,5 +1,6 @@
 package com.backend.constructor.user.security.jwt;
 
+import com.backend.constructor.common.enums.TokenType;
 import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.config.properties.RsaKeyProperties;
 import com.backend.constructor.core.domain.entity.AccountEntity;
@@ -55,7 +56,7 @@ public class TokenProvider {
         final var now = Instant.now();
 
         final var claims = JwtClaimsSet.builder()
-                .issuer("devtuna.com")
+                .issuer("nvietanh.com")
                 .issuedAt(now)
                 .expiresAt(now.plus(rsaKeyProperties.expired(), ChronoUnit.MINUTES))
                 .subject(authentication.getName())
@@ -72,7 +73,20 @@ public class TokenProvider {
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plus(15, ChronoUnit.DAYS))
                 .subject(authentication.getName())
-                .claim(AUTHORITIES_KEY, "REFRESH_TOKEN")
+                .claim(AUTHORITIES_KEY, TokenType.REFRESH)
+                .build();
+
+        return jwtEncoder.encode(JwtEncoderParameters.from(claims));
+    }
+
+    public Jwt createResetToken(String username) {
+        log.info("[TokenProvider:createResetToken] Token Creation Started for:{}", username);
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer("devtuna.com")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plus(5, ChronoUnit.MINUTES))
+                .subject(username)
+                .claim(AUTHORITIES_KEY, TokenType.RESET_PASSWORD)
                 .build();
 
         return jwtEncoder.encode(JwtEncoderParameters.from(claims));
