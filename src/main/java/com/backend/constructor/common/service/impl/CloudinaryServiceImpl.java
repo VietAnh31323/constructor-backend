@@ -1,44 +1,64 @@
 package com.backend.constructor.common.service.impl;
 
+import com.backend.constructor.app.dto.upload.UploadDto;
 import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.common.service.CloudinaryService;
+import com.backend.constructor.core.domain.enums.CloudinaryResourceType;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.UUID;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CloudinaryServiceImpl implements CloudinaryService {
+    public static final String UPLOAD = "/upload/";
     private final Cloudinary cloudinary;
 
     @Override
-    public String uploadImage(MultipartFile file) throws IOException {
-        if (file.getOriginalFilename() == null) {
-            throw new BusinessException("400", "File name cannot be null");
+    public UploadDto uploadFile(MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException("CST013");
         }
-        String publicValue = generatePublicValue(file.getOriginalFilename());
-        String extension = getFileName(file.getOriginalFilename())[1];
-        File fileUpload = convert(file);
+        String originalFilename = Objects.requireNonNull(file.getOriginalFilename());
+        String[] fileName = getFileName(originalFilename);
+        String safeName = sanitizeFileName(fileName[0]);
+        CloudinaryResourceType resourceType = detectResourceType(file);
+        String publicId = CloudinaryResourceType.RAW.equals(resourceType) ? "constructor/" + safeName + "." + fileName[1] : "constructor/" + safeName;
+        @SuppressWarnings("unchecked")
+        Map<String, Object> options = ObjectUtils.asMap(
+                "resource_type", resourceType.getValue(),
+                "public_id", publicId,
+                "use_filename", true,
+                "unique_filename", false
+        );
 
-        String fullPublicId = "constructor/" + publicValue;
+        Map<?, ?> uploadResult = cloudinary.uploader()
+                .upload(file.getBytes(), options);
 
-        cloudinary.uploader().upload(fileUpload, ObjectUtils.asMap("public_id", fullPublicId));
-        cleanDisk(fileUpload);
+        String secureUrl = (String) uploadResult.get("secure_url");
 
-        return cloudinary.url().generate(StringUtils.join(fullPublicId, ".", extension));
+        String encodedFileName = URLEncoder.encode(safeName, StandardCharsets.UTF_8);
+        String finalUrl = resourceType == CloudinaryResourceType.RAW ? secureUrl.replace(
+                UPLOAD,
+                "/upload/fl_attachment:" + encodedFileName + "/"
+        ) : secureUrl;
 
+        return UploadDto.builder()
+                .name(originalFilename)
+                .url(finalUrl)
+                .type(resourceType.name())
+                .build();
     }
 
     @Override
@@ -65,11 +85,11 @@ public class CloudinaryServiceImpl implements CloudinaryService {
 
     private String extractPublicIdFromUrl(String url) {
         // Tìm vị trí bắt đầu từ "/upload/"
-        int index = url.indexOf("/upload/");
+        int index = url.indexOf(UPLOAD);
         if (index == -1) {
             throw new BusinessException("400", "URL không hợp lệ: " + url);
         }
-        String path = url.substring(index + "/upload/".length());
+        String path = url.substring(index + UPLOAD.length());
 
         // Nếu có version v1/ → loại bỏ
         if (path.matches("v\\d+/.*")) {
@@ -80,31 +100,42 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         return path.replaceAll("\\.[a-zA-Z0-9]+$", "");
     }
 
-    private File convert(MultipartFile file) throws IOException {
-        assert file.getOriginalFilename() != null;
-        File convFile = new File(StringUtils.join(generatePublicValue(file.getOriginalFilename()), getFileName(file.getOriginalFilename())[1]));
-        try (InputStream is = file.getInputStream()) {
-            Files.copy(is, convFile.toPath());
-        }
-        return convFile;
-    }
-
-    private void cleanDisk(File file) {
-        try {
-            log.info("file.toPath(): {}", file.toPath());
-            Path filePath = file.toPath();
-            Files.delete(filePath);
-        } catch (IOException e) {
-            log.error("Error");
-        }
-    }
-
-    public String generatePublicValue(String originalName) {
-        String fileName = getFileName(originalName)[0];
-        return StringUtils.join(UUID.randomUUID().toString(), "_", fileName);
-    }
-
     public String[] getFileName(String originalName) {
         return originalName.split("\\.");
+    }
+
+    public CloudinaryResourceType detectResourceType(MultipartFile file) {
+
+        String contentType = file.getContentType();
+        String filename = file.getOriginalFilename();
+
+        if (contentType != null) {
+            if (contentType.startsWith("image/")) {
+                return CloudinaryResourceType.IMAGE;
+            }
+            if (contentType.startsWith("video/")) {
+                return CloudinaryResourceType.VIDEO;
+            }
+        }
+
+        if (filename != null) {
+            String ext = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+
+            if (Set.of("jpg", "jpeg", "png", "webp", "gif").contains(ext)) {
+                return CloudinaryResourceType.IMAGE;
+            }
+            if (Set.of("mp4", "mov", "avi", "webm").contains(ext)) {
+                return CloudinaryResourceType.VIDEO;
+            }
+        }
+
+        return CloudinaryResourceType.RAW;
+    }
+
+    private String sanitizeFileName(String filename) {
+        return filename
+                .toLowerCase()
+                .replaceAll("\\s+", "_")     // space → _
+                .replaceAll("[^a-z0-9._-]", "");
     }
 }

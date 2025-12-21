@@ -1,6 +1,7 @@
 package com.backend.constructor.config;
 
 import com.cloudinary.Cloudinary;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -9,12 +10,22 @@ import java.util.Map;
 
 @Configuration
 public class ConfigCloudinary {
+
+    @Value("${cloudinary.cloud-name}")
+    private String cloudName;
+
+    @Value("${cloudinary.api-key}")
+    private String apiKey;
+
+    @Value("${cloudinary.api-secret}")
+    private String apiSecret;
+
     @Bean
-    public Cloudinary configKey() {
+    public Cloudinary cloudinary() {
         Map<String, String> config = new HashMap<>();
-        config.put("cloud_name","dt8idd99e");
-        config.put("api_key","833898432841594");
-        config.put("api_secret","5kXbMC-C_xLW4HEnRYcqJn3Tm5A");
+        config.put("cloud_name", cloudName);
+        config.put("api_key", apiKey);
+        config.put("api_secret", apiSecret);
         return new Cloudinary(config);
     }
 }
