@@ -53,6 +53,8 @@ spring:
   devtools:
     restart:
       enabled: false
+    livereload:
+      enabled: false
 jwt:
   expired: 1440
   rsa-private-key: classpath:certs/privateKey.pem
@@ -61,7 +63,7 @@ logging:
   level:
     ROOT: INFO
     org.hibernate.SQL: INFO
-    com.cinema.authentication: debug
+    com.backend.constructor: debug
 springdoc:
   api-docs:
     enabled: true

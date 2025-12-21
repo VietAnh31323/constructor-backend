@@ -29,7 +29,7 @@ public final class SecurityUtils {
         } else if (authentication.getPrincipal() instanceof UserDetails springSecurityUser) {
             return springSecurityUser.getUsername();
         } else if (authentication instanceof JwtAuthenticationToken) {
-            return (String) ((JwtAuthenticationToken) authentication).getToken().getClaims().get("preferred_username");
+            return (String) ((JwtAuthenticationToken) authentication).getToken().getClaims().get("sub");
         } else if (authentication.getPrincipal() instanceof DefaultOidcUser defaultOidcUser) {
             Map<String, Object> attributes = defaultOidcUser.getAttributes();
             if (attributes.containsKey("preferred_username")) {

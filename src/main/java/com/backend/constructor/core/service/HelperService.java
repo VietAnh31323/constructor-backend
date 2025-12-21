@@ -1,5 +1,7 @@
 package com.backend.constructor.core.service;
 
+import com.backend.constructor.common.error.BusinessException;
+import com.backend.constructor.user.security.SecurityUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.security.SecureRandom;
@@ -33,6 +35,11 @@ public class HelperService {
         int bound = (int) Math.pow(10, OTP_LENGTH);
         int otp = RANDOM.nextInt(bound);
         return String.format("%0" + OTP_LENGTH + "d", otp);
+    }
+
+    public static String getUsernameLogin() {
+        return SecurityUtils.getCurrentUserLogin()
+                .orElseThrow(() -> BusinessException.exception("ERROR_0002"));
     }
 }
 
