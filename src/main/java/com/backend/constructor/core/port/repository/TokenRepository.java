@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface TokenRepository extends BaseRepository<TokenEntity> {
     Optional<TokenEntity> findByRefreshToken(String refreshToken);
 
-    Optional<TokenEntity> findByResetToken(String resetToken);
+    TokenEntity findByResetToken(String resetToken);
 
     List<TokenEntity> findByAccountAndRevoked(Long accountId, Boolean revoked);
 }

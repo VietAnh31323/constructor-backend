@@ -7,6 +7,7 @@ import lombok.Builder;
 public record VerifyOtpDto(
         @NotBlank(message = "{CST004}") String username,
         @NotBlank(message = "{CST008}") String otp,
-        String token
+        String token,
+        String authScheme
 ) {
 }

@@ -6,6 +6,7 @@ import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.core.domain.entity.PasswordResetEntity;
 import com.backend.constructor.core.domain.entity.PasswordResetEntity_;
 import com.backend.constructor.core.port.repository.PasswordResetRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -15,6 +16,8 @@ import java.util.List;
 @Repository
 @RequiredArgsConstructor
 public class PasswordResetRepositoryImpl extends JpaRepositoryAdapter<PasswordResetEntity> implements PasswordResetRepository {
+    private final EntityManager entityManager;
+
     @Override
     public List<PasswordResetEntity> getListByAccountId(Long accountId) {
         Filter<PasswordResetEntity> filter = Filter.builder()
@@ -25,15 +28,15 @@ public class PasswordResetRepositoryImpl extends JpaRepositoryAdapter<PasswordRe
     }
 
     @Override
-    public PasswordResetEntity getByAccountIdAndOtpValid(Long accountId, String otp) {
+    public PasswordResetEntity getByAccountIdAndOtpValid(Long accountId) {
         Filter<PasswordResetEntity> filter = Filter.builder()
                 .search()
                 .isEqual(PasswordResetEntity_.USED, false)
                 .isNull(PasswordResetEntity_.USED)
                 .filter()
                 .isEqual(PasswordResetEntity_.ACCOUNT_ID, accountId)
-                .isEqual(PasswordResetEntity_.OTP_HASH, otp)
                 .isGreaterThan(PasswordResetEntity_.EXPIRES_AT, Instant.now())
+                .withContext(entityManager)
                 .build(PasswordResetEntity.class);
         if (filter.getList().isEmpty()) {
             throw BusinessException.exception("CST011");

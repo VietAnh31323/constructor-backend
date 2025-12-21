@@ -8,6 +8,7 @@ import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.common.service.MailService;
 import com.backend.constructor.config.languages.Translator;
 import com.backend.constructor.core.domain.entity.*;
+import com.backend.constructor.core.domain.enums.AuthScheme;
 import com.backend.constructor.core.port.mapper.AccountMapper;
 import com.backend.constructor.core.port.repository.*;
 import com.backend.constructor.core.service.HelperService;
@@ -149,20 +150,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
+    @Transactional
     public VerifyOtpDto verifyOtp(VerifyOtpDto input) {
         Optional<AccountEntity> optionalAccount = accountRepository.findByUsername(input.username());
         if (optionalAccount.isEmpty()) {
             throw BusinessException.exception("CST000");
         }
         AccountEntity accountEntity = optionalAccount.get();
-        PasswordResetEntity otpValid = passwordResetRepository.getByAccountIdAndOtpValid(accountEntity.getId(), input.otp());
+        PasswordResetEntity otpValid = passwordResetRepository.getByAccountIdAndOtpValid(accountEntity.getId());
+        if (!passwordEncoder.matches(input.otp(), otpValid.getOtpHash())) {
+            throw BusinessException.exception("CST011");
+        }
         otpValid.setUsed(true);
         Jwt jwt = tokenProvider.createResetToken(accountEntity.getUsername());
         saveResetToken(accountEntity, jwt);
         return VerifyOtpDto.builder()
                 .username(accountEntity.getUsername())
-                .otp(jwt.getTokenValue())
+                .otp(input.otp())
                 .token(jwt.getTokenValue())
+                .authScheme(AuthScheme.BEARER.toString())
                 .build();
     }
 
@@ -171,11 +177,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public void resetPassword(ResetPasswordDto input, HttpServletRequest req) {
         final var resetToken = tokenProvider.resolveToken(req);
         if (ObjectUtils.isEmpty(resetToken)) {
-            throw BusinessException.exception("400", "CST009");
+            throw BusinessException.exception("CST009");
         }
-        var refreshTokenEntity = tokenRepository.findByResetToken(resetToken)
-                .filter(tokens -> tokenProvider.validateToken(tokens.getToken()))
-                .orElseThrow(() -> BusinessException.exception(translator.toLocale("400", "CST007")));
+        var refreshTokenEntity = tokenRepository.findByResetToken(resetToken);
+        if (!tokenProvider.validateToken(refreshTokenEntity.getToken())) {
+            throw BusinessException.exception("CST009");
+        }
         AccountEntity accountEntity = accountRepository.getAccountById(refreshTokenEntity.getAccountId());
         accountEntity.setPassword(passwordEncoder.encode(input.newPassword()));
         accountRepository.save(accountEntity);

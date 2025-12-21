@@ -10,5 +10,5 @@ import java.util.List;
 public interface PasswordResetRepository extends BaseRepository<PasswordResetEntity> {
     List<PasswordResetEntity> getListByAccountId(Long accountId);
 
-    PasswordResetEntity getByAccountIdAndOtpValid(Long accountId, String otp);
+    PasswordResetEntity getByAccountIdAndOtpValid(Long accountId);
 }
