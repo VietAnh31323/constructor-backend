@@ -53,6 +53,7 @@ public class SecurityConfiguration {
         http
                 .securityMatchers(matchers -> matchers
                         .requestMatchers(
+                                "/public/**",
                                 "/sign-up",
                                 "/sign-in",
                                 "/password/forgot",

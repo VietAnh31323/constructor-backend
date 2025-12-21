@@ -17,7 +17,7 @@ public interface AuthenticationResource {
     @PostMapping("/sign-in")
     AccountDto signIn(@Valid @RequestBody SignInRequest request, final HttpServletResponse response);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_REFRESH_TOKEN')")
+    @PreAuthorize("hasAnyAuthority('SCOPE_REFRESH')")
     @PostMapping("/refresh-token")
     AccountDto getAccessTokenByRefreshToken(HttpServletRequest req);
 
