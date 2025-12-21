@@ -1,5 +1,8 @@
 package com.backend.constructor.core.domain.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum CloudinaryResourceType {
     IMAGE("image"),
     VIDEO("video"),
@@ -11,7 +14,4 @@ public enum CloudinaryResourceType {
         this.value = value;
     }
 
-    public String getValue() {
-        return value;
-    }
 }

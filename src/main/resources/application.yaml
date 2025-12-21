@@ -50,11 +50,6 @@ spring:
           auth: true
           starttls:
             enable: true
-  devtools:
-    restart:
-      enabled: false
-    livereload:
-      enabled: false
 jwt:
   expired: 1440
   rsa-private-key: classpath:certs/privateKey.pem
