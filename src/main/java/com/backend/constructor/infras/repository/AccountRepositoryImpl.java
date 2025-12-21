@@ -20,12 +20,18 @@ public class AccountRepositoryImpl extends JpaRepositoryAdapter<AccountEntity> i
     @Override
     public AccountEntity findByUsernameAndRole(String username, ERole role) {
         return accountJpaRepository.findByUsernameAndRole(username, role)
-                .orElseThrow(() -> BusinessException.exception("ACCOUNT NOT FOUND"));
+                .orElseThrow(() -> BusinessException.exception("CST000"));
     }
 
     @Override
     public Optional<AccountEntity> findByUsername(String username) {
         return accountJpaRepository.findByUsernameAndStatus(username, AccountStatus.ACTIVE);
+    }
+
+    @Override
+    public AccountEntity getByUsername(String username) {
+        return accountJpaRepository.findByUsernameAndStatus(username, AccountStatus.ACTIVE)
+                .orElseThrow(() -> BusinessException.exception("CST000"));
     }
 
     @Override

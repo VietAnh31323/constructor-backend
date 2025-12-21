@@ -53,12 +53,12 @@ public class SecurityConfiguration {
         http
                 .securityMatchers(matchers -> matchers
                         .requestMatchers(
+                                "/public/**",
                                 "/sign-up",
                                 "/sign-in",
                                 "/password/forgot",
                                 "/password/verify-otp",
-                                "/password/reset",
-                                "/api/v1/**"
+                                "/password/reset"
                         )
                 )
                 .cors(withDefaults())
@@ -74,7 +74,11 @@ public class SecurityConfiguration {
     @Order(2)
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity, TokenProvider tokenProvider) throws Exception {
         return httpSecurity
-                .securityMatchers(matchers -> matchers.requestMatchers("/api/**"))
+                .securityMatchers(matchers -> matchers
+                        .requestMatchers(
+                                "/api/v1/**"
+                        )
+                )
                 .cors(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())

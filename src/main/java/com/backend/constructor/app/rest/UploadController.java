@@ -1,6 +1,7 @@
 package com.backend.constructor.app.rest;
 
 import com.backend.constructor.app.api.UploadApi;
+import com.backend.constructor.app.dto.upload.UploadDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -20,7 +21,7 @@ public class UploadController implements UploadApi {
 
     @Override
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public String upload(MultipartFile file) throws IOException {
-        return uploadService.upload(file);
+    public UploadDto uploadFile(MultipartFile file) throws IOException {
+        return uploadService.uploadFile(file);
     }
 }

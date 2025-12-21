@@ -12,4 +12,6 @@ public interface StaffRepository extends BaseRepository<StaffEntity> {
     StaffEntity getStaffById(Long id);
 
     Page<StaffEntity> getPageStaff(StaffFilterParam param, Pageable pageable);
+
+    StaffEntity getStaffByUsername(String usernameLogin);
 }
