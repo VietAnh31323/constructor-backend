@@ -11,8 +11,8 @@ CREATE TABLE account
     status     VARCHAR,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    created_by BIGINT,
-    updated_by BIGINT
+    created_by VARCHAR,
+    updated_by VARCHAR
 );
 
 CREATE TABLE role
@@ -22,8 +22,8 @@ CREATE TABLE role
     description TEXT,
     created_at  TIMESTAMP,
     updated_at  TIMESTAMP,
-    created_by  BIGINT,
-    updated_by  BIGINT
+    created_by  VARCHAR,
+    updated_by  VARCHAR
 );
 
 CREATE TABLE account_role_map
@@ -33,8 +33,8 @@ CREATE TABLE account_role_map
     role_id    BIGINT,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    created_by BIGINT,
-    updated_by BIGINT
+    created_by VARCHAR,
+    updated_by VARCHAR
 );
 
 CREATE TABLE token
@@ -47,8 +47,8 @@ CREATE TABLE token
     revoked     BOOLEAN,
     created_at  TIMESTAMP,
     updated_at  TIMESTAMP,
-    created_by  BIGINT,
-    updated_by  BIGINT
+    created_by  VARCHAR,
+    updated_by  VARCHAR
 );
 
 CREATE TABLE staff
@@ -67,8 +67,8 @@ CREATE TABLE staff
     description TEXT,
     created_at  TIMESTAMP,
     updated_at  TIMESTAMP,
-    created_by  BIGINT,
-    updated_by  BIGINT
+    created_by  VARCHAR,
+    updated_by  VARCHAR
 );
 
 CREATE TABLE account_staff_map
@@ -78,8 +78,8 @@ CREATE TABLE account_staff_map
     staff_id   BIGINT REFERENCES staff (id),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    created_by BIGINT,
-    updated_by BIGINT
+    created_by VARCHAR,
+    updated_by VARCHAR
 );
 
 CREATE TABLE customer
@@ -95,8 +95,8 @@ CREATE TABLE customer
     note           TEXT,
     created_at     TIMESTAMP,
     updated_at     TIMESTAMP,
-    created_by     BIGINT,
-    updated_by     BIGINT
+    created_by     VARCHAR,
+    updated_by     VARCHAR
 );
 
 CREATE TABLE category
@@ -108,8 +108,8 @@ CREATE TABLE category
     is_active   BOOLEAN,
     created_at  TIMESTAMP,
     updated_at  TIMESTAMP,
-    created_by  BIGINT,
-    updated_by  BIGINT
+    created_by  VARCHAR,
+    updated_by  VARCHAR
 );
 
 CREATE TABLE project
@@ -135,8 +135,8 @@ CREATE TABLE project
     project_images   TEXT,
     created_at       TIMESTAMP,
     updated_at       TIMESTAMP,
-    created_by       BIGINT,
-    updated_by       BIGINT
+    created_by       VARCHAR,
+    updated_by       VARCHAR
 );
 
 CREATE TABLE project_category_map
@@ -146,8 +146,8 @@ CREATE TABLE project_category_map
     category_id BIGINT REFERENCES category (id),
     created_at  TIMESTAMP,
     updated_at  TIMESTAMP,
-    created_by  BIGINT,
-    updated_by  BIGINT
+    created_by  VARCHAR,
+    updated_by  VARCHAR
 );
 
 CREATE TABLE project_line
@@ -159,8 +159,8 @@ CREATE TABLE project_line
     payment_amount NUMERIC,
     created_at     TIMESTAMP,
     updated_at     TIMESTAMP,
-    created_by     BIGINT,
-    updated_by     BIGINT
+    created_by     VARCHAR,
+    updated_by     VARCHAR
 );
 
 CREATE TABLE progress
@@ -172,8 +172,8 @@ CREATE TABLE progress
     is_active   BOOLEAN,
     created_at  TIMESTAMP,
     updated_at  TIMESTAMP,
-    created_by  BIGINT,
-    updated_by  BIGINT
+    created_by  VARCHAR,
+    updated_by  VARCHAR
 );
 
 CREATE TABLE project_progress_map
@@ -184,8 +184,8 @@ CREATE TABLE project_progress_map
     state       VARCHAR,
     created_at  TIMESTAMP,
     updated_at  TIMESTAMP,
-    created_by  BIGINT,
-    updated_by  BIGINT
+    created_by  VARCHAR,
+    updated_by  VARCHAR
 );
 
 CREATE TABLE task
@@ -201,8 +201,8 @@ CREATE TABLE task
     state            VARCHAR,
     created_at       TIMESTAMP,
     updated_at       TIMESTAMP,
-    created_by       BIGINT,
-    updated_by       BIGINT
+    created_by       VARCHAR,
+    updated_by       VARCHAR
 );
 
 CREATE TABLE task_staff_map
@@ -212,8 +212,8 @@ CREATE TABLE task_staff_map
     staff_id   BIGINT,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    created_by BIGINT,
-    updated_by BIGINT
+    created_by VARCHAR,
+    updated_by VARCHAR
 );
 
 CREATE TABLE project_progress_task_map
@@ -223,8 +223,8 @@ CREATE TABLE project_progress_task_map
     task_id                 BIGINT,
     created_at              TIMESTAMP,
     updated_at              TIMESTAMP,
-    created_by              BIGINT,
-    updated_by              BIGINT
+    created_by              VARCHAR,
+    updated_by              VARCHAR
 );
 
 CREATE TABLE steel_project
@@ -239,8 +239,8 @@ CREATE TABLE steel_project
     description   TEXT,
     created_at    TIMESTAMP,
     updated_at    TIMESTAMP,
-    created_by    BIGINT,
-    updated_by    BIGINT
+    created_by    VARCHAR,
+    updated_by    VARCHAR
 );
 
 CREATE TABLE summary_table
@@ -249,8 +249,8 @@ CREATE TABLE summary_table
     name       VARCHAR,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    created_by BIGINT,
-    updated_by BIGINT
+    created_by VARCHAR,
+    updated_by VARCHAR
 );
 
 CREATE TABLE steel_project_table_map
@@ -260,8 +260,8 @@ CREATE TABLE steel_project_table_map
     summary_table_id BIGINT REFERENCES summary_table (id),
     created_at       TIMESTAMP,
     updated_at       TIMESTAMP,
-    created_by       BIGINT,
-    updated_by       BIGINT
+    created_by       VARCHAR,
+    updated_by       VARCHAR
 );
 
 CREATE TABLE assembly
@@ -271,8 +271,8 @@ CREATE TABLE assembly
     quantity   NUMERIC,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    created_by BIGINT,
-    updated_by BIGINT
+    created_by VARCHAR,
+    updated_by VARCHAR
 );
 
 CREATE TABLE summary_table_assembly_map
@@ -282,8 +282,8 @@ CREATE TABLE summary_table_assembly_map
     assembly_id      BIGINT references assembly (id),
     created_at       TIMESTAMP,
     updated_at       TIMESTAMP,
-    created_by       BIGINT,
-    updated_by       BIGINT
+    created_by       VARCHAR,
+    updated_by       VARCHAR
 );
 
 CREATE TABLE steel_category
@@ -296,8 +296,8 @@ CREATE TABLE steel_category
     hasM       BOOLEAN,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    created_by BIGINT,
-    updated_by BIGINT
+    created_by VARCHAR,
+    updated_by VARCHAR
 );
 
 CREATE TABLE steel
@@ -313,8 +313,8 @@ CREATE TABLE steel
     totalWeight       NUMERIC,
     created_at        TIMESTAMP,
     updated_at        TIMESTAMP,
-    created_by        BIGINT,
-    updated_by        BIGINT
+    created_by        VARCHAR,
+    updated_by        VARCHAR
 );
 
 CREATE TABLE summary
@@ -326,8 +326,8 @@ CREATE TABLE summary
     totalLength      NUMERIC,
     created_at       TIMESTAMP,
     updated_at       TIMESTAMP,
-    created_by       BIGINT,
-    updated_by       BIGINT
+    created_by       VARCHAR,
+    updated_by       VARCHAR
 );
 
 alter table customer
@@ -342,8 +342,8 @@ CREATE TABLE password_reset
     used       BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    created_by BIGINT,
-    updated_by BIGINT
+    created_by VARCHAR,
+    updated_by VARCHAR
 );
 
 

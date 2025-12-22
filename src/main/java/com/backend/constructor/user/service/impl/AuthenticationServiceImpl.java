@@ -66,7 +66,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Transactional
     public IdResponse signUp(SignUpRequest request) {
         if (accountRepository.existsByUsername(request.username())) {
-            throw new BusinessException(String.valueOf(HttpStatus.BAD_REQUEST.value()), translator.toLocale("error.username.exists", request.username()));
+            throw new BusinessException(String.valueOf(HttpStatus.BAD_REQUEST.value()), translator.toLocale("CST014", request.username()));
         }
         final var entity = accountMapper.toEntity(request);
         RoleEntity role = roleRepository.getByName(ERole.STAFF).orElse(RoleEntity.builder().name(ERole.STAFF).description("nhân viên").build());
