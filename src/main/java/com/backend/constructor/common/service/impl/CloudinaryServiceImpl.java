@@ -49,7 +49,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         String secureUrl = (String) uploadResult.get("secure_url");
 
         String encodedFileName = URLEncoder.encode(safeName, StandardCharsets.UTF_8);
-        String finalUrl = resourceType == CloudinaryResourceType.RAW ? secureUrl.replace(
+        String finalUrl = CloudinaryResourceType.RAW.equals(resourceType) ? secureUrl.replace(
                 UPLOAD,
                 "/upload/fl_attachment:" + encodedFileName + "/"
         ) : secureUrl;
@@ -113,18 +113,23 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             if (contentType.startsWith("image/")) {
                 return CloudinaryResourceType.IMAGE;
             }
+            if (contentType.equals("application/pdf")) {
+                return CloudinaryResourceType.IMAGE;
+            }
             if (contentType.startsWith("video/")) {
                 return CloudinaryResourceType.VIDEO;
             }
         }
 
-        if (filename != null) {
+        if (filename != null && filename.contains(".")) {
             String ext = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
-
-            if (Set.of("jpg", "jpeg", "png", "webp", "gif").contains(ext)) {
+            if (Set.of("jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff").contains(ext)) {
                 return CloudinaryResourceType.IMAGE;
             }
-            if (Set.of("mp4", "mov", "avi", "webm").contains(ext)) {
+            if (Objects.equals("pdf", ext)) {
+                return CloudinaryResourceType.IMAGE;
+            }
+            if (Set.of("mp4", "mov", "avi", "webm", "mkv").contains(ext)) {
                 return CloudinaryResourceType.VIDEO;
             }
         }
