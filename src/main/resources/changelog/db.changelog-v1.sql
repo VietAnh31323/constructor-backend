@@ -346,6 +346,9 @@ CREATE TABLE password_reset
     updated_by VARCHAR
 );
 
+alter table account
+    add column staff_count BIGINT;
+
 
 
 

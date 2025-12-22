@@ -21,4 +21,13 @@ public class RoleEntity extends BaseEntity {
     private ERole name;
 
     private String description;
+
+    @Transient
+    private Long accountId;
+
+    public RoleEntity(Long id, ERole name, Long accountId) {
+        this.id = id;
+        this.name = name;
+        this.accountId = accountId;
+    }
 }

@@ -1,14 +1,19 @@
 package com.backend.constructor.user.controller.impl;
 
 import com.backend.constructor.app.api.AccountApi;
+import com.backend.constructor.app.dto.account.AccountOutput;
 import com.backend.constructor.app.dto.staff.AssignStaffDto;
 import com.backend.constructor.app.dto.staff.StaffDto;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.common.base.response.Message;
+import com.backend.constructor.common.enums.AccountStatus;
 import com.backend.constructor.user.dto.request.ChangePasswordDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,5 +49,14 @@ public class AccountController implements AccountApi {
     @Message("SUCCESS_005")
     public void assignStaffForAccount(@RequestBody @Valid AssignStaffDto input) {
         accountService.assignStaffForAccount(input);
+    }
+
+    @Override
+    @GetMapping("/list")
+    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    public Page<AccountOutput> getPageAccount(@RequestParam(required = false) String search,
+                                              @RequestParam(required = false) AccountStatus accountStatus,
+                                              @ParameterObject Pageable pageable) {
+        return accountService.getPageAccount(search, accountStatus, pageable);
     }
 }

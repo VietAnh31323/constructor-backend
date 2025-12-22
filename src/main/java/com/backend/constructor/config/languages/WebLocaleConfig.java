@@ -20,8 +20,8 @@ import java.util.Locale;
 public class WebLocaleConfig implements WebMvcConfigurer {
 
     private static final List<Locale> SUPPORTED_LOCALES = List.of(
-            new Locale("vi"),
-            new Locale("en")
+            Locale.forLanguageTag("vi"),
+            Locale.forLanguageTag("en")
     );
 
     @Bean
@@ -32,11 +32,11 @@ public class WebLocaleConfig implements WebMvcConfigurer {
             public Locale resolveLocale(@NonNull HttpServletRequest request) {
                 String headerLang = request.getHeader("Accept-Language");
                 if (!StringUtils.hasText(headerLang)) {
-                    return new Locale("vi"); // Mặc định là tiếng Việt
+                    return Locale.forLanguageTag("vi"); // Mặc định là tiếng Việt
                 }
                 List<Locale.LanguageRange> ranges = Locale.LanguageRange.parse(headerLang);
                 Locale matchedLocale = Locale.lookup(ranges, SUPPORTED_LOCALES);
-                return matchedLocale != null ? matchedLocale : new Locale("vi");
+                return matchedLocale != null ? matchedLocale : Locale.forLanguageTag("vi");
             }
         };
     }

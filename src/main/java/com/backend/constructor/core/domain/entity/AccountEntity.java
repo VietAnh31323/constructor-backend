@@ -32,4 +32,6 @@ public class AccountEntity extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private AccountStatus status;
+
+    private Long staffCount;
 }

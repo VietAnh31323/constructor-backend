@@ -1,5 +1,6 @@
 package com.backend.constructor.core.port.mapper;
 
+import com.backend.constructor.app.dto.account.AccountOutput;
 import com.backend.constructor.common.base.mapper.DefaultConfigMapper;
 import com.backend.constructor.common.base.mapper.EntityMapper;
 import com.backend.constructor.core.domain.entity.AccountEntity;
@@ -28,4 +29,6 @@ public interface AccountMapper extends EntityMapper<AccountEntity, AccountDto> {
     @Mapping(target = "token", source = "token.tokenValue")
     @Mapping(target = "tokenExpiry", source = "token.expiresAt")
     AccountDto toDto(Jwt token);
+
+    AccountOutput toOutput(AccountEntity accountEntity);
 }

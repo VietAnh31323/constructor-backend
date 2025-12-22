@@ -28,7 +28,7 @@ public class GlobalExceptionHandler {
         );
         response.addError(ex.getErrorCode(), handleMessage.getMessage(ex.getMessage(), ex));
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok().body(response);
     }
 
     // 2. Validation @Valid trong body
@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
             response.addError(code, fieldError.getDefaultMessage());
         }
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -53,7 +53,7 @@ public class GlobalExceptionHandler {
             response.addError(code, violation.getMessage());
         }
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(Exception.class)
@@ -67,6 +67,6 @@ public class GlobalExceptionHandler {
         );
         response.addError("500", ex.getMessage());
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        return ResponseEntity.internalServerError().body(response);
     }
 }

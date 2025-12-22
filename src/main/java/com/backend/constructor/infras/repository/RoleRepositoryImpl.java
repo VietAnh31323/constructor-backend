@@ -1,5 +1,6 @@
 package com.backend.constructor.infras.repository;
 
+import com.backend.constructor.app.dto.account.RoleDto;
 import com.backend.constructor.common.base.repository.JpaRepositoryAdapter;
 import com.backend.constructor.common.base.repository.filter.Filter;
 import com.backend.constructor.common.base.repository.filter.FilterJoiner;
@@ -14,8 +15,7 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Repository
 @RequiredArgsConstructor
@@ -37,5 +37,28 @@ public class RoleRepositoryImpl extends JpaRepositoryAdapter<RoleEntity> impleme
     @Override
     public Optional<RoleEntity> getByName(ERole eRole) {
         return roleJpaRepository.findByName(eRole);
+    }
+
+    @Override
+    public Map<Long, List<RoleDto>> getMapRoleDtoByAccountIds(Set<Long> accountIds) {
+        Filter<RoleEntity> filter = Filter.builder()
+                .select(RoleEntity_.ID)
+                .select(RoleEntity_.NAME)
+                .filter()
+                .leftJoin(RoleEntity_.ID, new FilterJoiner(AccountRoleMapEntity.class, AccountRoleMapEntity_.ROLE_ID))
+                .select(AccountRoleMapEntity_.ACCOUNT_ID)
+                .isIn(AccountRoleMapEntity_.ACCOUNT_ID, accountIds)
+                .withContext(entityManager)
+                .build(RoleEntity.class, RoleEntity.class);
+        List<RoleEntity> roleEntities = filter.getList();
+        Map<Long, List<RoleDto>> map = new HashMap<>();
+        for (RoleEntity roleEntity : roleEntities) {
+            map.computeIfAbsent(roleEntity.getAccountId(), k -> new ArrayList<>())
+                    .add(RoleDto.builder()
+                            .id(roleEntity.getId())
+                            .name(roleEntity.getName())
+                            .build());
+        }
+        return map;
     }
 }
