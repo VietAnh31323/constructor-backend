@@ -5,8 +5,12 @@ import com.backend.constructor.app.dto.staff.StaffDto;
 import com.backend.constructor.app.dto.staff.StaffFilterParam;
 import com.backend.constructor.app.dto.staff.StaffOutput;
 import com.backend.constructor.common.base.dto.response.IdResponse;
+import com.backend.constructor.core.domain.entity.AccountEntity;
+import com.backend.constructor.core.domain.entity.AccountStaffMapEntity;
 import com.backend.constructor.core.domain.entity.StaffEntity;
 import com.backend.constructor.core.port.mapper.StaffMapper;
+import com.backend.constructor.core.port.repository.AccountRepository;
+import com.backend.constructor.core.port.repository.AccountStaffMapRepository;
 import com.backend.constructor.core.port.repository.StaffRepository;
 import com.backend.constructor.core.service.internal.InternalAccountStaffMapService;
 import com.backend.constructor.user.dto.request.SignUpRequest;
@@ -17,6 +21,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static com.backend.constructor.core.service.HelperService.addIfNotNull;
 import static com.backend.constructor.core.service.HelperService.joinName;
 import static com.backend.constructor.core.service.PasswordGenerator.generateDefaultPassword;
 
@@ -28,6 +37,8 @@ public class StaffService implements StaffApi {
     private final StaffMapper staffMapper;
     private final AuthenticationService authenticationService;
     private final InternalAccountStaffMapService internalAccountStaffMapService;
+    private final AccountStaffMapRepository accountStaffMapRepository;
+    private final AccountRepository accountRepository;
 
     @Override
     @Transactional
@@ -68,6 +79,7 @@ public class StaffService implements StaffApi {
     public IdResponse delete(Long id) {
         StaffEntity staffEntity = staffRepository.getStaffById(id);
         staffRepository.delete(staffEntity);
+        deleteAccountOfStaff(id);
         return IdResponse.builder().id(staffEntity.getId()).build();
     }
 
@@ -82,5 +94,16 @@ public class StaffService implements StaffApi {
                                           Pageable pageable) {
         Page<StaffEntity> staffEntities = staffRepository.getPageStaff(param, pageable);
         return staffEntities.map(staffMapper::toOutput);
+    }
+
+    private void deleteAccountOfStaff(Long id) {
+        List<AccountStaffMapEntity> accountStaffMapEntities = accountStaffMapRepository.getListByStaffId(id);
+        Set<Long> accountIds = new HashSet<>();
+        for (AccountStaffMapEntity accountStaffMapEntity : accountStaffMapEntities) {
+            addIfNotNull(accountIds, accountStaffMapEntity.getAccountId());
+        }
+        List<AccountEntity> accountEntities = accountRepository.findAllByIds(accountIds);
+        accountStaffMapRepository.deleteAllInBatch(accountStaffMapEntities);
+        accountRepository.deleteAll(accountEntities);
     }
 }
