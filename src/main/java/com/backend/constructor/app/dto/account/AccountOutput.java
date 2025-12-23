@@ -1,5 +1,6 @@
 package com.backend.constructor.app.dto.account;
 
+import com.backend.constructor.app.dto.staff.StaffDto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Data;
@@ -13,5 +14,5 @@ public class AccountOutput {
     private Long id;
     private String username;
     private List<RoleDto> roles;
-    private Long staffCount;
+    private StaffDto staff;
 }

@@ -17,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -57,5 +58,23 @@ public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> imple
             throw BusinessException.exception("CST002");
         }
         return staffEntities.getFirst();
+    }
+
+    @Override
+    public List<StaffEntity> getListStaffByAccountIds(Collection<Long> accountIds) {
+        Filter<StaffEntity> filter = Filter.builder()
+                .select(StaffEntity_.ID)
+                .select(StaffEntity_.CODE)
+                .select(StaffEntity_.NAME)
+                .select(StaffEntity_.BIRTH_DATE)
+                .select(StaffEntity_.PHONE)
+                .select(StaffEntity_.POSITION)
+                .leftJoin(StaffEntity_.ID, new FilterJoiner(AccountStaffMapEntity.class, AccountStaffMapEntity_.STAFF_ID))
+                .select(AccountStaffMapEntity_.ACCOUNT_ID)
+                .filter()
+                .isIn(AccountEntity_.ID, accountIds)
+                .withContext(entityManager)
+                .build(StaffEntity.class, StaffEntity.class);
+        return filter.getList();
     }
 }

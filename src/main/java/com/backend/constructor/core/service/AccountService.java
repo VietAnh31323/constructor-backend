@@ -94,13 +94,25 @@ public class AccountService implements AccountApi {
             addIfNotNull(accountIds, accountEntity.getId());
         }
         Map<Long, List<RoleDto>> map = roleRepository.getMapRoleDtoByAccountIds(accountIds);
-        return accountEntities.map(accountEntity -> buildAccountOutput(accountEntity, map));
+        List<StaffEntity> staffEntities = staffRepository.getListStaffByAccountIds(accountIds);
+        Map<Long, StaffDto> staffMap = getMapStaffByAccountId(staffEntities);
+        return accountEntities.map(accountEntity -> buildAccountOutput(accountEntity, map, staffMap));
+    }
+
+    private Map<Long, StaffDto> getMapStaffByAccountId(List<StaffEntity> staffEntities) {
+        Map<Long, StaffDto> map = new HashMap<>();
+        for (StaffEntity staffEntity : staffEntities) {
+            map.put(staffEntity.getAccountId(), staffMapper.toDto(staffEntity));
+        }
+        return map;
     }
 
     private AccountOutput buildAccountOutput(AccountEntity accountEntity,
-                                             Map<Long, List<RoleDto>> map) {
+                                             Map<Long, List<RoleDto>> map,
+                                             Map<Long, StaffDto> staffMap) {
         AccountOutput accountOutput = accountMapper.toOutput(accountEntity);
         accountOutput.setRoles(getData(map, accountEntity.getId()));
+        accountOutput.setStaff(getData(staffMap, accountEntity.getId()));
         return accountOutput;
     }
 }

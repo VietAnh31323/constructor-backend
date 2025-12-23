@@ -45,4 +45,23 @@ public class StaffEntity extends BaseEntity {
     private String description;
 
     private String genPassword;
+
+    @Transient
+    private Long accountId;
+
+    public StaffEntity(Long id,
+                       String code,
+                       String name,
+                       LocalDate birthDate,
+                       String phone,
+                       Position position,
+                       Long accountId) {
+        this.id = id;
+        this.code = code;
+        this.name = name;
+        this.birthDate = birthDate;
+        this.phone = phone;
+        this.position = position;
+        this.accountId = accountId;
+    }
 }
