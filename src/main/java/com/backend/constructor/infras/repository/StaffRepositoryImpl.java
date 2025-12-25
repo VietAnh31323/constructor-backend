@@ -1,13 +1,13 @@
 package com.backend.constructor.infras.repository;
 
 import com.backend.constructor.app.dto.staff.StaffFilterParam;
+import com.backend.constructor.common.base.dto.response.CodeNameResponse;
 import com.backend.constructor.common.base.repository.JpaRepositoryAdapter;
 import com.backend.constructor.common.base.repository.filter.Filter;
 import com.backend.constructor.common.base.repository.filter.FilterFlag;
 import com.backend.constructor.common.base.repository.filter.FilterJoiner;
 import com.backend.constructor.common.enums.AccountStatus;
 import com.backend.constructor.common.error.BusinessException;
-import com.backend.constructor.config.languages.Translator;
 import com.backend.constructor.core.domain.entity.*;
 import com.backend.constructor.core.port.repository.StaffRepository;
 import jakarta.persistence.EntityManager;
@@ -19,16 +19,18 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
 public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> implements StaffRepository {
     private final EntityManager entityManager;
-    private final Translator translator;
 
     @Override
     public StaffEntity getStaffById(Long id) {
-        return findById(id).orElseThrow(() -> BusinessException.exception(translator.toLocale("CST002")));
+        return findById(id).orElseThrow(() -> BusinessException.exception("CST002"));
     }
 
     @Override
@@ -76,5 +78,15 @@ public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> imple
                 .withContext(entityManager)
                 .build(StaffEntity.class, StaffEntity.class);
         return filter.getList();
+    }
+
+    @Override
+    public Map<Long, CodeNameResponse> getMapSimpleStaffByIds(Set<Long> staffIds) {
+        return findAllByIds(staffIds).stream()
+                .collect(Collectors.toMap(StaffEntity::getId, entity -> CodeNameResponse.builder()
+                        .id(entity.getId())
+                        .code(entity.getCode())
+                        .name(entity.getName())
+                        .build()));
     }
 }

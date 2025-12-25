@@ -5,7 +5,6 @@ import com.backend.constructor.common.base.repository.JpaRepositoryAdapter;
 import com.backend.constructor.common.base.repository.filter.Filter;
 import com.backend.constructor.common.base.repository.filter.FilterFlag;
 import com.backend.constructor.common.error.BusinessException;
-import com.backend.constructor.config.languages.Translator;
 import com.backend.constructor.core.domain.entity.CustomerEntity;
 import com.backend.constructor.core.domain.entity.CustomerEntity_;
 import com.backend.constructor.core.port.repository.CustomerRepository;
@@ -20,11 +19,10 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CustomerRepositoryImpl extends JpaRepositoryAdapter<CustomerEntity> implements CustomerRepository {
     private final EntityManager entityManager;
-    private final Translator translator;
 
     @Override
     public CustomerEntity getCustomerById(Long id) {
-        return findById(id).orElseThrow(() -> BusinessException.exception(translator.toLocale("CST003")));
+        return findById(id).orElseThrow(() -> BusinessException.exception("CST003"));
 
     }
 

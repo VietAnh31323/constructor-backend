@@ -5,7 +5,6 @@ import com.backend.constructor.common.base.repository.JpaRepositoryAdapter;
 import com.backend.constructor.common.base.repository.filter.Filter;
 import com.backend.constructor.common.base.repository.filter.FilterFlag;
 import com.backend.constructor.common.error.BusinessException;
-import com.backend.constructor.config.languages.Translator;
 import com.backend.constructor.core.domain.entity.CategoryEntity_;
 import com.backend.constructor.core.domain.entity.ProgressEntity;
 import com.backend.constructor.core.port.repository.ProgressRepository;
@@ -20,11 +19,10 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class ProgressRepositoryImpl extends JpaRepositoryAdapter<ProgressEntity> implements ProgressRepository {
     private final EntityManager entityManager;
-    private final Translator translator;
 
     @Override
     public ProgressEntity getProgressById(Long id) {
-        return findById(id).orElseThrow(() -> BusinessException.exception(translator.toLocale("CST002")));
+        return findById(id).orElseThrow(() -> BusinessException.exception("CST002"));
     }
 
     @Override
