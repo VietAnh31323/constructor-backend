@@ -14,6 +14,8 @@ import java.util.Optional;
 public interface AccountRepository extends BaseRepository<AccountEntity> {
     AccountEntity findByUsernameAndRole(String username, ERole role);
 
+    Optional<AccountEntity> findOptionalByUsernameAndRole(String username, ERole role);
+
     Optional<AccountEntity> findByUsername(String username);
 
     AccountEntity getByUsername(String username);

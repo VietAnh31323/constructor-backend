@@ -1,10 +1,7 @@
 package com.backend.constructor.user.service;
 
 import com.backend.constructor.common.base.dto.response.IdResponse;
-import com.backend.constructor.user.dto.request.ResetPasswordDto;
-import com.backend.constructor.user.dto.request.SignInRequest;
-import com.backend.constructor.user.dto.request.SignUpRequest;
-import com.backend.constructor.user.dto.request.VerifyOtpDto;
+import com.backend.constructor.user.dto.request.*;
 import com.backend.constructor.user.dto.response.AccountDto;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,7 +14,7 @@ public interface AuthenticationService {
 
     AccountDto accessTokenByRefreshToken(HttpServletRequest req);
 
-    void forgotPassword(String email);
+    void forgotPassword(ForgotPasswordDto input);
 
     VerifyOtpDto verifyOtp(VerifyOtpDto input);
 

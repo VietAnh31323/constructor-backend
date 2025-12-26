@@ -4,6 +4,7 @@ import com.backend.constructor.app.api.CategoryApi;
 import com.backend.constructor.app.dto.category.CategoryDto;
 import com.backend.constructor.app.dto.category.CategoryFilterParam;
 import com.backend.constructor.common.base.dto.response.IdResponse;
+import com.backend.constructor.common.base.response.paging.HandsomePaging;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +46,7 @@ public class CategoryController implements CategoryApi {
 
     @Override
     @GetMapping("/list")
+    @HandsomePaging
     public Page<CategoryDto> getListStaff(@ParameterObject CategoryFilterParam param,
                                           @ParameterObject Pageable pageable) {
         return categoryService.getListStaff(param, pageable);
