@@ -24,4 +24,6 @@ public interface StaffRepository extends BaseRepository<StaffEntity> {
     List<StaffEntity> getListStaffByAccountIds(Collection<Long> accountIds);
 
     Map<Long, CodeNameResponse> getMapSimpleStaffByIds(Set<Long> staffIds);
+
+    StaffEntity getStaffByAccountId(Long accountId);
 }

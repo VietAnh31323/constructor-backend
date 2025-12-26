@@ -27,6 +27,8 @@ public class StaffDto {
     @NotNull(message = "{ERROR_0001}")
     private String lastName;
 
+    private String name;
+
     private String avatar;
 
     private LocalDate birthDate;
