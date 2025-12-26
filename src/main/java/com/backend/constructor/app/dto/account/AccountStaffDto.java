@@ -10,8 +10,8 @@ import java.util.List;
 @Data
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class AccountOutput {
-    private Long id;
+public class AccountStaffDto {
+    private Long id; // id của account
     private String username;
     private List<RoleDto> roles;
     private StaffDto staff;

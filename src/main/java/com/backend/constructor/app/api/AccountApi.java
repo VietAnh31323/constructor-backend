@@ -1,7 +1,7 @@
 package com.backend.constructor.app.api;
 
 
-import com.backend.constructor.app.dto.account.AccountOutput;
+import com.backend.constructor.app.dto.account.AccountStaffDto;
 import com.backend.constructor.app.dto.staff.AssignStaffDto;
 import com.backend.constructor.app.dto.staff.StaffDto;
 import com.backend.constructor.common.base.dto.response.IdResponse;
@@ -19,7 +19,11 @@ public interface AccountApi {
 
     void assignStaffForAccount(AssignStaffDto input);
 
-    Page<AccountOutput> getPageAccount(String search,
-                                       AccountStatus accountStatus,
-                                       Pageable pageable);
+    Page<AccountStaffDto> getPageAccount(String search,
+                                         AccountStatus accountStatus,
+                                         Pageable pageable);
+
+    AccountStaffDto getDetailStaffByAccountId(Long accountId);
+
+    IdResponse updateRoleOfAccount(AccountStaffDto accountStaffDto);
 }

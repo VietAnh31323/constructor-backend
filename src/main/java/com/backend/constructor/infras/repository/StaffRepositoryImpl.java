@@ -71,6 +71,7 @@ public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> imple
                 .select(StaffEntity_.BIRTH_DATE)
                 .select(StaffEntity_.PHONE)
                 .select(StaffEntity_.POSITION)
+                .select(StaffEntity_.AVATAR)
                 .leftJoin(StaffEntity_.ID, new FilterJoiner(AccountStaffMapEntity.class, AccountStaffMapEntity_.STAFF_ID))
                 .select(AccountStaffMapEntity_.ACCOUNT_ID)
                 .filter()
@@ -88,5 +89,22 @@ public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> imple
                         .code(entity.getCode())
                         .name(entity.getName())
                         .build()));
+    }
+
+    @Override
+    public StaffEntity getStaffByAccountId(Long accountId) {
+        Filter<StaffEntity> filter = Filter.builder()
+                .leftJoin(StaffEntity_.ID, new FilterJoiner(AccountStaffMapEntity.class, AccountStaffMapEntity_.STAFF_ID))
+                .thenLeftJoin(AccountStaffMapEntity_.ACCOUNT_ID, new FilterJoiner(AccountEntity.class, AccountEntity_.ID))
+                .filter()
+                .isEqual(AccountEntity_.ID, accountId)
+                .isEqual(AccountEntity_.STATUS, AccountStatus.ACTIVE)
+                .withContext(entityManager)
+                .build(StaffEntity.class);
+        List<StaffEntity> staffEntities = filter.getList();
+        if (staffEntities.isEmpty()) {
+            throw BusinessException.exception("CST002");
+        }
+        return staffEntities.getFirst();
     }
 }

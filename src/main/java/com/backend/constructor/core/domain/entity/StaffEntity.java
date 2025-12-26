@@ -55,6 +55,7 @@ public class StaffEntity extends BaseEntity {
                        LocalDate birthDate,
                        String phone,
                        Position position,
+                       String avatar,
                        Long accountId) {
         this.id = id;
         this.code = code;
@@ -62,6 +63,7 @@ public class StaffEntity extends BaseEntity {
         this.birthDate = birthDate;
         this.phone = phone;
         this.position = position;
+        this.avatar = avatar;
         this.accountId = accountId;
     }
 }

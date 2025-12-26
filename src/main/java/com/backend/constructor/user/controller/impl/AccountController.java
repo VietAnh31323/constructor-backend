@@ -1,7 +1,7 @@
 package com.backend.constructor.user.controller.impl;
 
 import com.backend.constructor.app.api.AccountApi;
-import com.backend.constructor.app.dto.account.AccountOutput;
+import com.backend.constructor.app.dto.account.AccountStaffDto;
 import com.backend.constructor.app.dto.staff.AssignStaffDto;
 import com.backend.constructor.app.dto.staff.StaffDto;
 import com.backend.constructor.common.base.dto.response.IdResponse;
@@ -54,9 +54,23 @@ public class AccountController implements AccountApi {
     @Override
     @GetMapping("/list")
     @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
-    public Page<AccountOutput> getPageAccount(@RequestParam(required = false) String search,
-                                              @RequestParam(required = false) AccountStatus accountStatus,
-                                              @ParameterObject Pageable pageable) {
+    public Page<AccountStaffDto> getPageAccount(@RequestParam(required = false) String search,
+                                                @RequestParam(required = false) AccountStatus accountStatus,
+                                                @ParameterObject Pageable pageable) {
         return accountService.getPageAccount(search, accountStatus, pageable);
+    }
+
+    @Override
+    @GetMapping("/staff")
+    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    public AccountStaffDto getDetailStaffByAccountId(@RequestParam Long accountId) {
+        return accountService.getDetailStaffByAccountId(accountId);
+    }
+
+    @Override
+    @PutMapping("/role")
+    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    public IdResponse updateRoleOfAccount(@RequestBody @Valid AccountStaffDto accountStaffDto) {
+        return accountService.updateRoleOfAccount(accountStaffDto);
     }
 }
