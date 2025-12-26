@@ -18,8 +18,7 @@ public class InternalAccountStaffMapServiceImpl implements InternalAccountStaffM
     @Valid
     @Override
     @Transactional
-    public void createAccountMap(@NotNull Long accountId,
-                                 @NotNull Long staffId) {
+    public void createAccountMap(@NotNull Long staffId, @NotNull Long accountId) {
         AccountStaffMapEntity accountStaffMapEntity = AccountStaffMapEntity.builder()
                 .accountId(accountId)
                 .staffId(staffId)
