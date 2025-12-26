@@ -31,6 +31,11 @@ public class AccountRepositoryImpl extends JpaRepositoryAdapter<AccountEntity> i
     }
 
     @Override
+    public Optional<AccountEntity> findOptionalByUsernameAndRole(String username, ERole role) {
+        return accountJpaRepository.findByUsernameAndRole(username, role);
+    }
+
+    @Override
     public Optional<AccountEntity> findByUsername(String username) {
         return accountJpaRepository.findByUsernameAndStatus(username, AccountStatus.ACTIVE);
     }

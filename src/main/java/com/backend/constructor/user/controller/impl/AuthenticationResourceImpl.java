@@ -51,7 +51,7 @@ public class AuthenticationResourceImpl implements AuthenticationResource {
     @Override
     @Message("SUCCESS_002")
     public void forgotPassword(@RequestBody @Valid ForgotPasswordDto input) {
-        authenticationService.forgotPassword(input.username());
+        authenticationService.forgotPassword(input);
     }
 
     @Override

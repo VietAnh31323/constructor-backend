@@ -127,8 +127,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     @Transactional
-    public void forgotPassword(String email) {
-        Optional<AccountEntity> account = accountRepository.findByUsername(email);
+    public void forgotPassword(ForgotPasswordDto input) {
+        Optional<AccountEntity> account = accountRepository.findOptionalByUsernameAndRole(input.username(), input.eRole());
         if (account.isEmpty()) {
             return;
         }
