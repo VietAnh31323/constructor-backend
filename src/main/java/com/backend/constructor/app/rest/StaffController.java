@@ -5,6 +5,7 @@ import com.backend.constructor.app.dto.staff.StaffDto;
 import com.backend.constructor.app.dto.staff.StaffFilterParam;
 import com.backend.constructor.app.dto.staff.StaffOutput;
 import com.backend.constructor.common.base.dto.response.IdResponse;
+import com.backend.constructor.common.base.response.paging.HandsomePaging;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ public class StaffController implements StaffApi {
 
     @Override
     @GetMapping("/list")
+    @HandsomePaging
     public Page<StaffOutput> getListStaff(@ParameterObject StaffFilterParam param,
                                           @ParameterObject Pageable pageable) {
         return staffService.getListStaff(param, pageable);

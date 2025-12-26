@@ -4,6 +4,7 @@ import com.backend.constructor.app.api.ProgressApi;
 import com.backend.constructor.app.dto.progress.ProgressDto;
 import com.backend.constructor.app.dto.progress.ProgressFilterParam;
 import com.backend.constructor.common.base.dto.response.IdResponse;
+import com.backend.constructor.common.base.response.paging.HandsomePaging;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +46,7 @@ public class ProgressController implements ProgressApi {
 
     @Override
     @GetMapping("/list")
+    @HandsomePaging
     public Page<ProgressDto> getListStaff(@ParameterObject ProgressFilterParam param,
                                           @ParameterObject Pageable pageable) {
         return progressService.getListStaff(param, pageable);

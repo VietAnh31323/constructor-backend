@@ -5,6 +5,7 @@ import com.backend.constructor.app.dto.project.ProjectDto;
 import com.backend.constructor.app.dto.project.ProjectFilterParam;
 import com.backend.constructor.app.dto.project.ProjectOutput;
 import com.backend.constructor.common.base.dto.response.IdResponse;
+import com.backend.constructor.common.base.response.paging.HandsomePaging;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ public class ProjectController implements ProjectApi {
 
     @Override
     @GetMapping("/list")
+    @HandsomePaging
     public Page<ProjectOutput> getListProject(@ParameterObject ProjectFilterParam param,
                                               @ParameterObject Pageable pageable) {
         return projectService.getListProject(param, pageable);

@@ -6,6 +6,7 @@ import com.backend.constructor.app.dto.staff.AssignStaffDto;
 import com.backend.constructor.app.dto.staff.StaffDto;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.common.base.response.Message;
+import com.backend.constructor.common.base.response.paging.HandsomePaging;
 import com.backend.constructor.common.enums.AccountStatus;
 import com.backend.constructor.user.dto.request.ChangePasswordDto;
 import jakarta.validation.Valid;
@@ -54,6 +55,7 @@ public class AccountController implements AccountApi {
     @Override
     @GetMapping("/list")
     @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @HandsomePaging
     public Page<AccountStaffDto> getPageAccount(@RequestParam(required = false) String search,
                                                 @RequestParam(required = false) AccountStatus accountStatus,
                                                 @ParameterObject Pageable pageable) {
