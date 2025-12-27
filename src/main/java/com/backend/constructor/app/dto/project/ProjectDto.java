@@ -4,6 +4,7 @@ import com.backend.constructor.app.dto.upload.UploadDto;
 import com.backend.constructor.common.base.dto.response.CodeNameResponse;
 import com.backend.constructor.core.domain.enums.ProjectState;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -32,8 +33,11 @@ public class ProjectDto {
 
     private String address;
 
+    @NotNull(message = "{ERROR_0001}")
+    @Min(0)
     private BigDecimal contractValue;
 
+    @Min(0)
     private BigDecimal contractAdvance;
 
     private BigDecimal remainingAmount;

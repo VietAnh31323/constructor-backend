@@ -1,5 +1,7 @@
 package com.backend.constructor.app.dto.project;
 
+import com.backend.constructor.common.base.dto.response.CodeNameResponse;
+import com.backend.constructor.core.domain.enums.PaymentStatus;
 import com.backend.constructor.core.domain.enums.ProjectState;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,7 +26,7 @@ public class ProjectOutput {
 
     private String owner;
 
-    private String address;
+    private CodeNameResponse manager;
 
     private BigDecimal contractValue;
 
@@ -37,4 +39,6 @@ public class ProjectOutput {
     private LocalDate deliveryDate;
 
     private ProjectState state;
+
+    private PaymentStatus paymentStatus;
 }
