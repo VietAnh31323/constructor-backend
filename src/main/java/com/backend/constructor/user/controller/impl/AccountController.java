@@ -40,7 +40,7 @@ public class AccountController implements AccountApi {
 
     @Override
     @PutMapping("/change-password")
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN','SCOPE_STAFF')")
+    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN','SCOPE_STAFF', 'SCOPE_CUSTOMER_CARE')")
     public void changePassword(@RequestBody @Valid ChangePasswordDto input) {
         accountService.changePassword(input);
     }
