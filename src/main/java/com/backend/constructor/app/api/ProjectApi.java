@@ -21,7 +21,6 @@ public interface ProjectApi {
     @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
     ProjectDto getDetail(Long id);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
     Page<ProjectOutput> getListProject(ProjectFilterParam param,
                                        Pageable pageable);
 }

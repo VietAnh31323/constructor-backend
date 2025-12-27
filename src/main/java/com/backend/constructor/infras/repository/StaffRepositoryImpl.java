@@ -75,7 +75,7 @@ public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> imple
                 .leftJoin(StaffEntity_.ID, new FilterJoiner(AccountStaffMapEntity.class, AccountStaffMapEntity_.STAFF_ID))
                 .select(AccountStaffMapEntity_.ACCOUNT_ID)
                 .filter()
-                .isIn(AccountEntity_.ID, accountIds)
+                .isIn(AccountStaffMapEntity_.ACCOUNT_ID, accountIds)
                 .withContext(entityManager)
                 .build(StaffEntity.class, StaffEntity.class);
         return filter.getList();
