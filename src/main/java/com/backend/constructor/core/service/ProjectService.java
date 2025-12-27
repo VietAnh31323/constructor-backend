@@ -8,6 +8,7 @@ import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.core.domain.entity.ProjectCategoryMapEntity;
 import com.backend.constructor.core.domain.entity.ProjectEntity;
 import com.backend.constructor.core.domain.entity.ProjectLineEntity;
+import com.backend.constructor.core.domain.enums.PaymentStatus;
 import com.backend.constructor.core.domain.enums.ProjectState;
 import com.backend.constructor.core.port.mapper.ProjectLineMapper;
 import com.backend.constructor.core.port.mapper.ProjectMapper;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 import static com.backend.constructor.core.service.HelperService.addIfNotNull;
@@ -40,6 +42,7 @@ public class ProjectService implements ProjectApi {
     public IdResponse create(ProjectDto input) {
         input.trimData();
         ProjectEntity projectEntity = projectMapper.toEntity(input);
+        projectEntity.setRemainingAmount(calculateRemainingAmount(input.getContractValue(), input.getContractAdvance()));
         projectEntity.setState(ProjectState.NOT_STARTED);
         projectRepository.save(projectEntity);
         saveProjectLines(projectEntity, input.getProjectLines());
@@ -88,8 +91,15 @@ public class ProjectService implements ProjectApi {
     }
 
     @Override
-    public Page<ProjectOutput> getListProject(ProjectFilterParam param, Pageable pageable) {
-        return null;
+    public Page<ProjectOutput> getListProject(ProjectFilterParam param,
+                                              Pageable pageable) {
+        Page<ProjectEntity> projectEntities = projectRepository.getPageProject(param, pageable);
+        Set<Long> staffIds = new HashSet<>();
+        for (ProjectEntity projectEntity : projectEntities) {
+            staffIds.add(projectEntity.getManagerId());
+        }
+        Map<Long, CodeNameResponse> staffMap = staffRepository.getMapSimpleStaffByIds(staffIds);
+        return projectEntities.map(entity -> buildProjectOutput(entity, staffMap));
     }
 
     private void saveProjectLines(ProjectEntity projectEntity,
@@ -151,5 +161,26 @@ public class ProjectService implements ProjectApi {
                 .map(projectLineMapper::toDto)
                 .toList();
         projectDto.setProjectLines(projectLines);
+    }
+
+    private ProjectOutput buildProjectOutput(ProjectEntity entity,
+                                             Map<Long, CodeNameResponse> staffMap) {
+        ProjectOutput projectOutput = projectMapper.toOutput(entity);
+        projectOutput.setManager(getData(staffMap, entity.getManagerId()));
+        projectOutput.setPaymentStatus(getPaymentStatus(entity.getRemainingAmount()));
+        return projectOutput;
+    }
+
+    private PaymentStatus getPaymentStatus(BigDecimal remainingAmount) {
+        if (remainingAmount.compareTo(BigDecimal.ZERO) > 0) {
+            return PaymentStatus.NOT_COMPLETED;
+        }
+        return PaymentStatus.COMPLETED;
+    }
+
+    private BigDecimal calculateRemainingAmount(BigDecimal contractValue,
+                                                BigDecimal contractAdvance) {
+        if (contractAdvance == null) contractAdvance = BigDecimal.ZERO;
+        return contractValue.subtract(contractAdvance);
     }
 }
