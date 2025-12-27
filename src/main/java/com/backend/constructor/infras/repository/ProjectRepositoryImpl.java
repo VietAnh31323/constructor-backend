@@ -43,6 +43,7 @@ public class ProjectRepositoryImpl extends JpaRepositoryAdapter<ProjectEntity> i
         }
         Filter<ProjectEntity> filter = filterBuilder
                 .pageable(pageable)
+                .withContext(entityManager)
                 .build(ProjectEntity.class);
         return filter.getPage();
     }
