@@ -5,6 +5,9 @@ import com.backend.constructor.app.dto.project.*;
 import com.backend.constructor.common.base.dto.response.CodeNameResponse;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.common.error.BusinessException;
+import com.backend.constructor.common.service.GenerateCodeService;
+import com.backend.constructor.common.validator.UniqueValidationService;
+import com.backend.constructor.core.domain.constant.Constants;
 import com.backend.constructor.core.domain.entity.ProjectCategoryMapEntity;
 import com.backend.constructor.core.domain.entity.ProjectEntity;
 import com.backend.constructor.core.domain.entity.ProjectLineEntity;
@@ -36,14 +39,18 @@ public class ProjectService implements ProjectApi {
     private final ProjectCategoryMapRepository projectCategoryMapRepository;
     private final StaffRepository staffRepository;
     private final CategoryRepository categoryRepository;
+    private final GenerateCodeService generateCodeService;
+    private final UniqueValidationService uniqueValidationService;
 
     @Override
     @Transactional
     public IdResponse create(ProjectDto input) {
         input.trimData();
+        generateCodeService.generateCode(input, Constants.DA, ProjectEntity.class);
         ProjectEntity projectEntity = projectMapper.toEntity(input);
         projectEntity.setRemainingAmount(calculateRemainingAmount(input.getContractValue(), input.getContractAdvance()));
         projectEntity.setState(ProjectState.NOT_STARTED);
+        uniqueValidationService.validate(projectEntity);
         projectRepository.save(projectEntity);
         saveProjectLines(projectEntity, input.getProjectLines());
         saveProjectCategoryMaps(projectEntity, input.getProjectCategoryMaps());
@@ -53,9 +60,11 @@ public class ProjectService implements ProjectApi {
     @Override
     @Transactional
     public IdResponse update(ProjectDto input) {
+        generateCodeService.generateCode(input, Constants.DA, ProjectEntity.class);
         ProjectEntity projectEntity = projectRepository.getProjectById(input.getId());
         input.trimData();
         projectMapper.update(input, projectEntity);
+        uniqueValidationService.validate(projectEntity);
         projectRepository.save(projectEntity);
         deleteAllRelations(projectEntity);
         saveProjectLines(projectEntity, input.getProjectLines());

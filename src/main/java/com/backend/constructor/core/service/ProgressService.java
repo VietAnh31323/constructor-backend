@@ -4,6 +4,9 @@ import com.backend.constructor.app.api.ProgressApi;
 import com.backend.constructor.app.dto.progress.ProgressDto;
 import com.backend.constructor.app.dto.progress.ProgressFilterParam;
 import com.backend.constructor.common.base.dto.response.IdResponse;
+import com.backend.constructor.common.service.GenerateCodeService;
+import com.backend.constructor.common.validator.UniqueValidationService;
+import com.backend.constructor.core.domain.constant.Constants;
 import com.backend.constructor.core.domain.entity.ProgressEntity;
 import com.backend.constructor.core.port.mapper.ProgressMapper;
 import com.backend.constructor.core.port.repository.ProgressRepository;
@@ -19,13 +22,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProgressService implements ProgressApi {
     private final ProgressRepository progressRepository;
     private final ProgressMapper progressMapper;
+    private final GenerateCodeService generateCodeService;
+    private final UniqueValidationService uniqueValidationService;
 
     @Override
     @Transactional
     public IdResponse create(ProgressDto input) {
         input.trimData();
+        generateCodeService.generateCode(input, Constants.TT, ProgressEntity.class);
         input.setId(null);
         ProgressEntity progressEntity = progressMapper.toEntity(input);
+        uniqueValidationService.validate(progressEntity);
         progressRepository.save(progressEntity);
         return IdResponse.builder().id(progressEntity.getId()).build();
     }
@@ -34,8 +41,10 @@ public class ProgressService implements ProgressApi {
     @Transactional
     public IdResponse update(ProgressDto input) {
         input.trimData();
+        generateCodeService.generateCode(input, Constants.TT, ProgressEntity.class);
         ProgressEntity progressEntity = progressRepository.getProgressById(input.getId());
         progressMapper.update(input, progressEntity);
+        uniqueValidationService.validate(progressEntity);
         progressRepository.save(progressEntity);
         return IdResponse.builder().id(progressEntity.getId()).build();
     }

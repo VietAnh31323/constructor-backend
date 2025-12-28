@@ -1,6 +1,7 @@
 package com.backend.constructor.core.domain.entity;
 
 import com.backend.constructor.common.base.entity.BaseEntity;
+import com.backend.constructor.common.validator.Unique;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,8 +17,10 @@ public class CategoryEntity extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Unique(err = "ERROR_0005")
     private String code;
 
+    @Unique(err = "ERROR_0006")
     private String name;
 
     private String description;

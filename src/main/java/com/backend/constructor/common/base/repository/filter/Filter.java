@@ -16,6 +16,8 @@ import java.util.Collection;
 import java.util.List;
 
 public class Filter<T> {
+    private static final String UPPER = "upper(";
+    private static final String UPPER_FUNCTION_UNACCENT = "upper(function('unaccent',";
     private final TypedQuery<T> query;
     private final TypedQuery<Long> countQuery;
     private final Pageable pageable;
@@ -881,23 +883,21 @@ public class Filter<T> {
                 int position,
                 FilterOperator operator,
                 FilterFlag flag) {
-            if (flag == FilterFlag.CASE_SENSITIVE) {
-                applyCaseSensitive(fieldName, position, operator);
-            } else if (flag == FilterFlag.UNACCENT) {
-                applyUnaccent(value, fieldName, position, operator);
-            } else {
-                applyUnaccentCaseSensitive(value, fieldName, position, operator);
+            switch (flag) {
+                case FilterFlag.CASE_SENSITIVE -> applyCaseSensitive(fieldName, position, operator);
+                case FilterFlag.UNACCENT -> applyUnaccent(value, fieldName, position, operator);
+                default -> applyUnaccentCaseSensitive(value, fieldName, position, operator);
             }
         }
 
         private void applyCaseSensitive(String fieldName, int position, FilterOperator operator) {
             statement.append(logicOperator)
-                    .append("upper(")
+                    .append(UPPER)
                     .append(table)
                     .append(fieldName)
                     .append(")")
                     .append(operator.value())
-                    .append("upper(")
+                    .append(UPPER)
                     .append("?")
                     .append(position)
                     .append(")");
@@ -926,12 +926,12 @@ public class Filter<T> {
         private void applyUnaccentCaseSensitive(String value, String fieldName, int position, FilterOperator operator) {
             if (StringUtils.stripAccents(value).equals(value)) {
                 statement.append(logicOperator)
-                        .append("upper(function('unaccent',")
+                        .append(UPPER_FUNCTION_UNACCENT)
                         .append(table)
                         .append(fieldName)
                         .append("))")
                         .append(operator.value())
-                        .append("upper(function('unaccent',")
+                        .append(UPPER_FUNCTION_UNACCENT)
                         .append("?")
                         .append(position)
                         .append("))");
@@ -946,22 +946,20 @@ public class Filter<T> {
                 int position,
                 FilterOperator operator,
                 FilterFlag flag) {
-            if (flag == FilterFlag.CASE_SENSITIVE) {
-                applyCaseSensitive(function, position, operator);
-            } else if (flag == FilterFlag.UNACCENT) {
-                applyUnaccent(value, function, position, operator);
-            } else {
-                applyUnaccentCaseSensitive(value, function, position, operator);
+            switch (flag) {
+                case FilterFlag.CASE_SENSITIVE -> applyCaseSensitive(function, position, operator);
+                case FilterFlag.UNACCENT -> applyUnaccent(value, function, position, operator);
+                default -> applyUnaccentCaseSensitive(value, function, position, operator);
             }
         }
 
         private void applyCaseSensitive(FilterFunction function, int position, FilterOperator operator) {
             statement.append(logicOperator)
-                    .append("upper(")
+                    .append(UPPER)
                     .append(getRawText(table, function))
                     .append(")")
                     .append(operator.value())
-                    .append("upper(")
+                    .append(UPPER)
                     .append("?")
                     .append(position)
                     .append(")");
@@ -988,11 +986,11 @@ public class Filter<T> {
         private void applyUnaccentCaseSensitive(String value, FilterFunction function, int position, FilterOperator operator) {
             if (StringUtils.stripAccents(value).equals(value)) {
                 statement.append(logicOperator)
-                        .append("upper(function('unaccent',")
+                        .append(UPPER_FUNCTION_UNACCENT)
                         .append(getRawText(table, function))
                         .append("))")
                         .append(operator.value())
-                        .append("upper(")
+                        .append(UPPER)
                         .append("?")
                         .append(position)
                         .append(")");

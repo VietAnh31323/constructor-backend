@@ -4,7 +4,11 @@ import com.backend.constructor.app.api.CategoryApi;
 import com.backend.constructor.app.dto.category.CategoryDto;
 import com.backend.constructor.app.dto.category.CategoryFilterParam;
 import com.backend.constructor.common.base.dto.response.IdResponse;
+import com.backend.constructor.common.service.GenerateCodeService;
+import com.backend.constructor.common.validator.UniqueValidationService;
+import com.backend.constructor.core.domain.constant.Constants;
 import com.backend.constructor.core.domain.entity.CategoryEntity;
+import com.backend.constructor.core.domain.entity.StaffEntity;
 import com.backend.constructor.core.port.mapper.CategoryMapper;
 import com.backend.constructor.core.port.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +23,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class CategoryService implements CategoryApi {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
+    private final GenerateCodeService generateCodeService;
+    private final UniqueValidationService uniqueValidationService;
 
     @Override
     @Transactional
     public IdResponse create(CategoryDto input) {
         input.trimData();
+        generateCodeService.generateCode(input, Constants.DM, CategoryEntity.class);
         input.setId(null);
         CategoryEntity categoryEntity = categoryMapper.toEntity(input);
+        uniqueValidationService.validate(categoryEntity);
         categoryRepository.save(categoryEntity);
         return IdResponse.builder().id(categoryEntity.getId()).build();
     }
@@ -34,8 +42,10 @@ public class CategoryService implements CategoryApi {
     @Transactional
     public IdResponse update(CategoryDto input) {
         input.trimData();
+        generateCodeService.generateCode(input, Constants.DM, StaffEntity.class);
         CategoryEntity categoryEntity = categoryRepository.getCategoryById(input.getId());
         categoryMapper.update(input, categoryEntity);
+        uniqueValidationService.validate(categoryEntity);
         categoryRepository.save(categoryEntity);
         return IdResponse.builder().id(categoryEntity.getId()).build();
     }

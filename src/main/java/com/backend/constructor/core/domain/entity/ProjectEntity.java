@@ -2,6 +2,7 @@ package com.backend.constructor.core.domain.entity;
 
 import com.backend.constructor.app.dto.upload.UploadDto;
 import com.backend.constructor.common.base.entity.BaseEntity;
+import com.backend.constructor.common.validator.Unique;
 import com.backend.constructor.core.domain.converter.UploadDtoListConverter;
 import com.backend.constructor.core.domain.enums.ProjectState;
 import jakarta.persistence.*;
@@ -24,6 +25,7 @@ public class ProjectEntity extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Unique(err = "ERROR_0005")
     private String code;
 
     private String name;

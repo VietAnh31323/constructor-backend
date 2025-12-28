@@ -39,7 +39,7 @@ public class HelperService {
 
     public static String getUsernameLogin() {
         return SecurityUtils.getCurrentUserLogin()
-                .orElseThrow(() -> BusinessException.exception("ERROR_0002"));
+                .orElseThrow(() -> BusinessException.exception("ERROR_0003"));
     }
 }
 

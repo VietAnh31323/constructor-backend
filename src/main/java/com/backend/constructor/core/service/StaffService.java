@@ -5,6 +5,9 @@ import com.backend.constructor.app.dto.staff.StaffDto;
 import com.backend.constructor.app.dto.staff.StaffFilterParam;
 import com.backend.constructor.app.dto.staff.StaffOutput;
 import com.backend.constructor.common.base.dto.response.IdResponse;
+import com.backend.constructor.common.service.GenerateCodeService;
+import com.backend.constructor.common.validator.UniqueValidationService;
+import com.backend.constructor.core.domain.constant.Constants;
 import com.backend.constructor.core.domain.entity.AccountEntity;
 import com.backend.constructor.core.domain.entity.AccountStaffMapEntity;
 import com.backend.constructor.core.domain.entity.StaffEntity;
@@ -39,37 +42,32 @@ public class StaffService implements StaffApi {
     private final InternalAccountStaffMapService internalAccountStaffMapService;
     private final AccountStaffMapRepository accountStaffMapRepository;
     private final AccountRepository accountRepository;
+    private final GenerateCodeService generateCodeService;
+    private final UniqueValidationService uniqueValidationService;
 
     @Override
     @Transactional
     public IdResponse create(StaffDto input) {
         input.trimData();
+        generateCodeService.generateCode(input, Constants.NS, StaffEntity.class);
         input.setId(null);
         StaffEntity staffEntity = staffMapper.toEntity(input);
         staffEntity.setName(joinName(input.getFirstName(), input.getLastName()));
+        uniqueValidationService.validate(staffEntity);
         staffRepository.save(staffEntity);
         createAccount(staffEntity);
         return IdResponse.builder().id(staffEntity.getId()).build();
-    }
-
-    private void createAccount(StaffEntity staffEntity) {
-        String password = generateDefaultPassword(8);
-        staffEntity.setGenPassword(password);
-        SignUpRequest request = SignUpRequest.builder()
-                .username(staffEntity.getEmail())
-                .password(password)
-                .build();
-        IdResponse idResponse = authenticationService.signUp(request);
-        internalAccountStaffMapService.createAccountMap(staffEntity.getId(), idResponse.getId());
     }
 
     @Override
     @Transactional
     public IdResponse update(StaffDto input) {
         input.trimData();
+        generateCodeService.generateCode(input, Constants.NS, StaffEntity.class);
         StaffEntity staffEntity = staffRepository.getStaffById(input.getId());
         staffMapper.update(input, staffEntity);
         staffEntity.setName(joinName(input.getFirstName(), input.getLastName()));
+        uniqueValidationService.validate(staffEntity);
         staffRepository.save(staffEntity);
         return IdResponse.builder().id(staffEntity.getId()).build();
     }
@@ -94,6 +92,17 @@ public class StaffService implements StaffApi {
                                           Pageable pageable) {
         Page<StaffEntity> staffEntities = staffRepository.getPageStaff(param, pageable);
         return staffEntities.map(staffMapper::toOutput);
+    }
+
+    private void createAccount(StaffEntity staffEntity) {
+        String password = generateDefaultPassword(8);
+        staffEntity.setGenPassword(password);
+        SignUpRequest request = SignUpRequest.builder()
+                .username(staffEntity.getEmail())
+                .password(password)
+                .build();
+        IdResponse idResponse = authenticationService.signUp(request);
+        internalAccountStaffMapService.createAccountMap(staffEntity.getId(), idResponse.getId());
     }
 
     private void deleteAccountOfStaff(Long id) {

@@ -8,6 +8,8 @@ import com.backend.constructor.app.dto.staff.StaffDto;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.common.enums.AccountStatus;
 import com.backend.constructor.common.error.BusinessException;
+import com.backend.constructor.common.service.GenerateCodeService;
+import com.backend.constructor.core.domain.constant.Constants;
 import com.backend.constructor.core.domain.entity.AccountEntity;
 import com.backend.constructor.core.domain.entity.AccountRoleMapEntity;
 import com.backend.constructor.core.domain.entity.AccountStaffMapEntity;
@@ -41,6 +43,7 @@ public class AccountService implements AccountApi {
     private final AccountMapper accountMapper;
     private final RoleRepository roleRepository;
     private final AccountRoleMapRepository accountRoleMapRepository;
+    private final GenerateCodeService generateCodeService;
 
     @Override
     public StaffDto getAccountInfo() {
@@ -51,6 +54,7 @@ public class AccountService implements AccountApi {
     @Override
     @Transactional
     public IdResponse updateAccountInfo(StaffDto input) {
+        generateCodeService.generateCode(input, Constants.NS, StaffEntity.class);
         StaffEntity staffEntity = staffRepository.getStaffByUsername(HelperService.getUsernameLogin());
         staffMapper.update(input, staffEntity);
         staffEntity.setName(joinName(input.getFirstName(), input.getLastName()));
@@ -70,7 +74,7 @@ public class AccountService implements AccountApi {
         }
         AccountEntity accountEntity = accountOptional.get();
         if (!passwordEncoder.matches(changePasswordDto.oldPassword(), accountEntity.getPassword())) {
-            throw BusinessException.exception("ERROR_0003");
+            throw BusinessException.exception("ERROR_0004");
         }
         accountEntity.setPassword(passwordEncoder.encode(changePasswordDto.newPassword()));
         accountRepository.save(accountEntity);
