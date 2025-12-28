@@ -4,6 +4,7 @@ import com.backend.constructor.app.api.CategoryApi;
 import com.backend.constructor.app.dto.category.CategoryDto;
 import com.backend.constructor.app.dto.category.CategoryFilterParam;
 import com.backend.constructor.common.base.dto.response.IdResponse;
+import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.common.service.GenerateCodeService;
 import com.backend.constructor.common.validator.UniqueValidationService;
 import com.backend.constructor.core.domain.constant.Constants;
@@ -54,6 +55,9 @@ public class CategoryService implements CategoryApi {
     @Transactional
     public IdResponse delete(Long id) {
         CategoryEntity categoryEntity = categoryRepository.getCategoryById(id);
+        if (Boolean.TRUE.equals(categoryEntity.getIsActive())) {
+            throw BusinessException.exception("ERROR_0007");
+        }
         categoryRepository.delete(categoryEntity);
         return IdResponse.builder().id(categoryEntity.getId()).build();
     }

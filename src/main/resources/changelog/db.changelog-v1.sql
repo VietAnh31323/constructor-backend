@@ -288,16 +288,27 @@ CREATE TABLE summary_table_assembly_map
 
 CREATE TABLE steel_category
 (
-    id         BIGSERIAL PRIMARY KEY,
-    url        VARCHAR,
-    hasL1      BOOLEAN,
-    hasL2      BOOLEAN,
-    hasL3      BOOLEAN,
-    hasM       BOOLEAN,
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP,
-    created_by VARCHAR,
-    updated_by VARCHAR
+    id          BIGSERIAL PRIMARY KEY,
+    code        varchar,
+    name        varchar,
+    images      text,
+    is_active   boolean,
+    description text,
+    created_at  TIMESTAMP,
+    updated_at  TIMESTAMP,
+    created_by  VARCHAR,
+    updated_by  VARCHAR
+);
+
+CREATE TABLE steel_category_line
+(
+    id                BIGSERIAL PRIMARY KEY,
+    steel_category_id bigint references steel_category (id),
+    param_name        varchar,
+    created_at        TIMESTAMP,
+    updated_at        TIMESTAMP,
+    created_by        VARCHAR,
+    updated_by        VARCHAR
 );
 
 CREATE TABLE steel
@@ -349,6 +360,16 @@ CREATE TABLE password_reset
 alter table account
     add column staff_count BIGINT;
 
+CREATE TABLE role
+(
+    id          BIGSERIAL PRIMARY KEY,
+    name        VARCHAR,
+    description TEXT,
+    created_at  TIMESTAMP,
+    updated_at  TIMESTAMP,
+    created_by  VARCHAR,
+    updated_by  VARCHAR
+);
 
 
 

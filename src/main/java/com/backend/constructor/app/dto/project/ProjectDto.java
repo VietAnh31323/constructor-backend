@@ -23,7 +23,6 @@ import java.util.List;
 public class ProjectDto {
     private Long id;
 
-    @NotNull(message = "{ERROR_0001}")
     private String code;
 
     @NotBlank(message = "{ERROR_0001}")

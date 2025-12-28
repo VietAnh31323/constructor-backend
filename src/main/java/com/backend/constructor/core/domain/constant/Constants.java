@@ -6,6 +6,7 @@ public class Constants {
     public static final String KH = "KH";
     public static final String TT = "TT";
     public static final String DA = "DA";
+    public static final String MTT = "MTT";
 
     private Constants() {
     }

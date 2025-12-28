@@ -4,6 +4,7 @@ import com.backend.constructor.app.api.ProgressApi;
 import com.backend.constructor.app.dto.progress.ProgressDto;
 import com.backend.constructor.app.dto.progress.ProgressFilterParam;
 import com.backend.constructor.common.base.dto.response.IdResponse;
+import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.common.service.GenerateCodeService;
 import com.backend.constructor.common.validator.UniqueValidationService;
 import com.backend.constructor.core.domain.constant.Constants;
@@ -53,6 +54,9 @@ public class ProgressService implements ProgressApi {
     @Transactional
     public IdResponse delete(Long id) {
         ProgressEntity progressEntity = progressRepository.getProgressById(id);
+        if (Boolean.TRUE.equals(progressEntity.getIsActive())) {
+            throw BusinessException.exception("ERROR_0007");
+        }
         progressRepository.delete(progressEntity);
         return IdResponse.builder().id(progressEntity.getId()).build();
     }

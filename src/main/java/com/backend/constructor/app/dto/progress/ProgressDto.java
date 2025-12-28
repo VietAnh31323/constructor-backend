@@ -12,7 +12,6 @@ import org.apache.commons.lang3.StringUtils;
 public class ProgressDto {
     private Long id;
 
-    @NotBlank(message = "{ERROR_0001}")
     private String code;
 
     @NotBlank(message = "{ERROR_0001}")
