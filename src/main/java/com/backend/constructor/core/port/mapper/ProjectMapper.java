@@ -2,6 +2,7 @@ package com.backend.constructor.core.port.mapper;
 
 import com.backend.constructor.app.dto.project.ProjectDto;
 import com.backend.constructor.app.dto.project.ProjectOutput;
+import com.backend.constructor.app.dto.project_progress.ProjectInfoDto;
 import com.backend.constructor.common.base.mapper.DefaultConfigMapper;
 import com.backend.constructor.common.base.mapper.EntityMapper;
 import com.backend.constructor.core.domain.entity.ProjectEntity;
@@ -24,4 +25,6 @@ public interface ProjectMapper extends EntityMapper<ProjectEntity, ProjectDto> {
     void update(ProjectDto dto, @MappingTarget ProjectEntity entity);
 
     ProjectOutput toOutput(ProjectEntity entity);
+
+    ProjectInfoDto toInfoDto(ProjectEntity entity);
 }

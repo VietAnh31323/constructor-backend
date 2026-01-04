@@ -14,4 +14,6 @@ public interface TaskStaffMapJpaRepository extends BaseJpaRepository<TaskStaffMa
     List<TaskStaffMapEntity> findAllByTaskId(Long taskId);
 
     void deleteAllByTaskIdIn(Collection<Long> taskIds);
+
+    List<TaskStaffMapEntity> findAllByTaskIdIn(Collection<Long> taskIds);
 }

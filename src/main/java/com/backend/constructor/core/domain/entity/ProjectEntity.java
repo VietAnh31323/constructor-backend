@@ -50,6 +50,8 @@ public class ProjectEntity extends BaseEntity {
 
     private Long supporterId;
 
+    private BigDecimal progressPercent;
+
     private String description;
 
     private String note;

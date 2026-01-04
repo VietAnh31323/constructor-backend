@@ -29,4 +29,9 @@ public class TaskStaffMapRepositoryImpl extends JpaRepositoryAdapter<TaskStaffMa
     public void deleteAllByTaskIds(Collection<Long> taskIds) {
         taskStaffMapJpaRepository.deleteAllByTaskIdIn(taskIds);
     }
+
+    @Override
+    public List<TaskStaffMapEntity> getListByTaskIds(Collection<Long> taskIds) {
+        return taskStaffMapJpaRepository.findAllByTaskIdIn(taskIds);
+    }
 }

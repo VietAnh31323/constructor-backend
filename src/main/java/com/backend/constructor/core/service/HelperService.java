@@ -3,6 +3,7 @@ package com.backend.constructor.core.service;
 import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.user.security.SecurityUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.CollectionUtils;
 
 import java.security.SecureRandom;
 import java.util.Collection;
@@ -28,6 +29,10 @@ public class HelperService {
 
     public static <T> void addIfNotNull(Collection<T> ids, T id) {
         if (Objects.nonNull(id)) ids.add(id);
+    }
+
+    public static <T> void addAllIfNotNull(Collection<T> ids, Collection<T> elements) {
+        if (CollectionUtils.isEmpty(elements)) ids.addAll(elements);
     }
 
 

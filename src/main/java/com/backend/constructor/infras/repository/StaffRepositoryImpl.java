@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Repository
@@ -106,5 +107,11 @@ public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> imple
             throw BusinessException.exception("CST002");
         }
         return staffEntities.getFirst();
+    }
+
+    @Override
+    public Map<Long, StaffEntity> getMapStaffEntityByIds(Set<Long> staffIds) {
+        return findAllByIds(staffIds).stream()
+                .collect(Collectors.toMap(StaffEntity::getId, Function.identity()));
     }
 }
