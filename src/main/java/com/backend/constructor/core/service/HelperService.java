@@ -5,9 +5,9 @@ import com.backend.constructor.user.security.SecurityUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.security.SecureRandom;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 public class HelperService {
 
@@ -26,7 +26,7 @@ public class HelperService {
         return map.get(id);
     }
 
-    public static <T> void addIfNotNull(Set<T> ids, T id) {
+    public static <T> void addIfNotNull(Collection<T> ids, T id) {
         if (Objects.nonNull(id)) ids.add(id);
     }
 
