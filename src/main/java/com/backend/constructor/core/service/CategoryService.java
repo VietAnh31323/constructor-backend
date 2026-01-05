@@ -69,7 +69,7 @@ public class CategoryService implements CategoryApi {
     }
 
     @Override
-    public Page<CategoryDto> getListStaff(CategoryFilterParam param, Pageable pageable) {
+    public Page<CategoryDto> getListCategory(CategoryFilterParam param, Pageable pageable) {
         Page<CategoryEntity> pageCategory = categoryRepository.getPageCategory(param, pageable);
         return pageCategory.map(categoryMapper::toDto);
     }

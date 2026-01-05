@@ -47,8 +47,8 @@ public class CategoryController implements CategoryApi {
     @Override
     @GetMapping("/list")
     @HandsomePaging
-    public Page<CategoryDto> getListStaff(@ParameterObject CategoryFilterParam param,
-                                          @ParameterObject Pageable pageable) {
-        return categoryService.getListStaff(param, pageable);
+    public Page<CategoryDto> getListCategory(@ParameterObject CategoryFilterParam param,
+                                             @ParameterObject Pageable pageable) {
+        return categoryService.getListCategory(param, pageable);
     }
 }

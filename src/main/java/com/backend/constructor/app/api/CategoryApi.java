@@ -21,6 +21,6 @@ public interface CategoryApi {
     CategoryDto getDetail(Long id);
 
     @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
-    Page<CategoryDto> getListStaff(CategoryFilterParam param,
-                                   Pageable pageable);
+    Page<CategoryDto> getListCategory(CategoryFilterParam param,
+                                      Pageable pageable);
 }
