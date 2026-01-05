@@ -372,7 +372,30 @@ CREATE TABLE role
 );
 
 
+CREATE TABLE steel_category
+(
+    id          BIGSERIAL PRIMARY KEY,
+    code        varchar,
+    name        varchar,
+    images      text,
+    is_active   boolean,
+    description text,
+    created_at  TIMESTAMP,
+    updated_at  TIMESTAMP,
+    created_by  VARCHAR,
+    updated_by  VARCHAR
+);
 
+CREATE TABLE steel_category_line
+(
+    id                BIGSERIAL PRIMARY KEY,
+    steel_category_id bigint references steel_category (id),
+    param_name        varchar,
+    created_at        TIMESTAMP,
+    updated_at        TIMESTAMP,
+    created_by        VARCHAR,
+    updated_by        VARCHAR
+);
 
 
 
