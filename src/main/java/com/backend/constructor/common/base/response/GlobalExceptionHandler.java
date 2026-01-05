@@ -6,6 +6,7 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,6 +18,26 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
     private final HandleMessage handleMessage;
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Response> handleAccessDeniedException(AccessDeniedException ex) {
+        // Log lỗi nếu cần thiết
+        log.warn("Cảnh báo bảo mật: Truy cập bị từ chối - {}", ex.getMessage());
+
+        ErrorResponse response = new ErrorResponse(
+                "Truy cập bị từ chối", // Tiêu đề chính của lỗi
+                null,
+                null
+        );
+
+        // Bắn ra message "đẹp" theo ý bạn
+        String customMessage = "Bạn không có quyền thực hiện tính năng này!";
+
+        // Giả sử mã lỗi 403 là mã mặc định cho lỗi phân quyền
+        response.addError("403", customMessage);
+
+        return ResponseEntity.status(403).body(response);
+    }
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Response> handleBusinessException(BusinessException ex) {

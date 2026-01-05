@@ -3,6 +3,7 @@ package com.backend.constructor.app.rest;
 import com.backend.constructor.app.api.TaskApi;
 import com.backend.constructor.app.dto.task.TaskDto;
 import com.backend.constructor.app.dto.task.TaskOutput;
+import com.backend.constructor.app.dto.task.UpdateStateDto;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -48,5 +49,11 @@ public class TaskController implements TaskApi {
     @GetMapping("/task-sub/list")
     public List<TaskOutput> getListTaskSub(@RequestParam Long parentId) {
         return taskService.getListTaskSub(parentId);
+    }
+
+    @Override
+    @PutMapping("/update-state")
+    public void updateState(@RequestBody @Valid UpdateStateDto input) {
+        taskService.updateState(input);
     }
 }
