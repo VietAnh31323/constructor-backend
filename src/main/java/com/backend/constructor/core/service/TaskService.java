@@ -2,6 +2,7 @@ package com.backend.constructor.core.service;
 
 import com.backend.constructor.app.api.TaskApi;
 import com.backend.constructor.app.dto.task.TaskDto;
+import com.backend.constructor.app.dto.task.TaskOutput;
 import com.backend.constructor.app.dto.task.TaskStaffMapDto;
 import com.backend.constructor.common.base.dto.response.CodeNameResponse;
 import com.backend.constructor.common.base.dto.response.IdResponse;
@@ -17,12 +18,15 @@ import com.backend.constructor.core.port.mapper.TaskMapper;
 import com.backend.constructor.core.port.repository.StaffRepository;
 import com.backend.constructor.core.port.repository.TaskRepository;
 import com.backend.constructor.core.port.repository.TaskStaffMapRepository;
+import com.backend.constructor.core.service.dto.DataCollect;
+import com.backend.constructor.core.service.internal.InternalTaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.backend.constructor.core.service.HelperService.addIfNotNull;
 import static com.backend.constructor.core.service.HelperService.getData;
@@ -38,6 +42,7 @@ public class TaskService implements TaskApi {
     private final TaskRepository taskRepository;
     private final TaskStaffMapRepository taskStaffMapRepository;
     private final StaffRepository staffRepository;
+    private final InternalTaskService internalTaskService;
 
     @Override
     @Transactional
@@ -107,6 +112,14 @@ public class TaskService implements TaskApi {
         return taskDto;
     }
 
+    @Override
+    public List<TaskOutput> getListTaskSub(Long parentId) {
+        List<TaskEntity> taskEntities = taskRepository.getListTaskByParentId(parentId);
+        List<TaskStaffMapEntity> taskStaffMapEntities = taskStaffMapRepository.getListByTaskIds(taskEntities.stream().map(TaskEntity::getId).collect(Collectors.toSet()));
+        DataCollect dataCollect = internalTaskService.getTaskDataCollectByIds(taskEntities, taskStaffMapEntities);
+        return taskEntities.stream().map(entity -> buildTaskOutput(entity, dataCollect)).toList();
+    }
+
     private void saveTaskStaffMap(Long taskId,
                                   List<TaskStaffMapDto> taskStaffMaps) {
         if (taskStaffMaps == null || taskStaffMaps.isEmpty()) return;
@@ -133,5 +146,12 @@ public class TaskService implements TaskApi {
                     .build());
         }
         return taskStaffMaps;
+    }
+
+    private TaskOutput buildTaskOutput(TaskEntity taskEntity,
+                                       DataCollect dataCollect) {
+        TaskOutput taskOutput = taskMapper.toOutput(taskEntity);
+        taskOutput.setStaffs(getData(dataCollect.getStaffSimpleListMap(), taskEntity.getId()));
+        return taskOutput;
     }
 }
