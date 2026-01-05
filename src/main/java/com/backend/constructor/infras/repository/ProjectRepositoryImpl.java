@@ -7,10 +7,7 @@ import com.backend.constructor.common.base.repository.filter.FilterBuilder;
 import com.backend.constructor.common.base.repository.filter.FilterFlag;
 import com.backend.constructor.common.base.repository.filter.FilterJoiner;
 import com.backend.constructor.common.error.BusinessException;
-import com.backend.constructor.core.domain.entity.ProjectCategoryMapEntity;
-import com.backend.constructor.core.domain.entity.ProjectCategoryMapEntity_;
-import com.backend.constructor.core.domain.entity.ProjectEntity;
-import com.backend.constructor.core.domain.entity.ProjectEntity_;
+import com.backend.constructor.core.domain.entity.*;
 import com.backend.constructor.core.port.repository.ProjectRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +15,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
+
+import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
@@ -46,5 +46,21 @@ public class ProjectRepositoryImpl extends JpaRepositoryAdapter<ProjectEntity> i
                 .withContext(entityManager)
                 .build(ProjectEntity.class);
         return filter.getPage();
+    }
+
+    @Override
+    public ProjectEntity getProjectByTaskId(Long taskId) {
+        Filter<ProjectEntity> filter = Filter.builder()
+                .leftJoin(ProjectEntity_.ID, new FilterJoiner(ProjectProgressEntity.class, ProjectProgressEntity_.PROJECT_ID))
+                .thenLeftJoin(ProjectProgressEntity_.ID, new FilterJoiner(ProjectProgressTaskMapEntity.class, ProjectProgressTaskMapEntity_.PROJECT_PROGRESS_ID))
+                .filter()
+                .isEqual(ProjectProgressTaskMapEntity_.TASK_ID, taskId)
+                .withContext(entityManager)
+                .build(ProjectEntity.class);
+        List<ProjectEntity> projectEntities = filter.getList();
+        if (CollectionUtils.isEmpty(projectEntities)) {
+            return null;
+        }
+        return projectEntities.getFirst();
     }
 }

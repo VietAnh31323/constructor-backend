@@ -13,4 +13,6 @@ public interface ProjectRepository extends BaseRepository<ProjectEntity> {
 
     Page<ProjectEntity> getPageProject(ProjectFilterParam param,
                                        Pageable pageable);
+
+    ProjectEntity getProjectByTaskId(Long taskId);
 }

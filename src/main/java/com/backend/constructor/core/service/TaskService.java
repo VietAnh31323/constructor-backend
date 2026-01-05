@@ -4,17 +4,20 @@ import com.backend.constructor.app.api.TaskApi;
 import com.backend.constructor.app.dto.task.TaskDto;
 import com.backend.constructor.app.dto.task.TaskOutput;
 import com.backend.constructor.app.dto.task.TaskStaffMapDto;
+import com.backend.constructor.app.dto.task.UpdateStateDto;
 import com.backend.constructor.common.base.dto.response.CodeNameResponse;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.common.service.GenerateCodeService;
 import com.backend.constructor.common.validator.UniqueValidationService;
 import com.backend.constructor.core.domain.constant.Constants;
+import com.backend.constructor.core.domain.entity.ProjectEntity;
 import com.backend.constructor.core.domain.entity.StaffEntity;
 import com.backend.constructor.core.domain.entity.TaskEntity;
 import com.backend.constructor.core.domain.entity.TaskStaffMapEntity;
 import com.backend.constructor.core.domain.enums.TaskState;
 import com.backend.constructor.core.port.mapper.TaskMapper;
+import com.backend.constructor.core.port.repository.ProjectRepository;
 import com.backend.constructor.core.port.repository.StaffRepository;
 import com.backend.constructor.core.port.repository.TaskRepository;
 import com.backend.constructor.core.port.repository.TaskStaffMapRepository;
@@ -25,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -43,6 +47,7 @@ public class TaskService implements TaskApi {
     private final TaskStaffMapRepository taskStaffMapRepository;
     private final StaffRepository staffRepository;
     private final InternalTaskService internalTaskService;
+    private final ProjectRepository projectRepository;
 
     @Override
     @Transactional
@@ -120,6 +125,25 @@ public class TaskService implements TaskApi {
         return taskEntities.stream().map(entity -> buildTaskOutput(entity, dataCollect)).toList();
     }
 
+    @Override
+    @Transactional
+    public void updateState(UpdateStateDto input) {
+        TaskEntity task = taskRepository.getTaskById(input.getId());
+        if (input.getState() == null) throw BusinessException.exception("CST019");
+        task.setState(input.getState());
+        taskRepository.save(task);
+        if (task.getParentId() != null) {
+            TaskEntity parentTask = taskRepository.getTaskById(task.getParentId());
+            syncStateParentTask(parentTask);
+            syncStateProjectTask(parentTask);
+            return;
+        }
+        if (TaskState.COMPLETED.equals(task.getState())) {
+            task.setProgressPercent(BigDecimal.valueOf(100));
+        }
+        syncStateProjectTask(task);
+    }
+
     private void saveTaskStaffMap(Long taskId,
                                   List<TaskStaffMapDto> taskStaffMaps) {
         if (taskStaffMaps == null || taskStaffMaps.isEmpty()) return;
@@ -153,5 +177,64 @@ public class TaskService implements TaskApi {
         TaskOutput taskOutput = taskMapper.toOutput(taskEntity);
         taskOutput.setStaffs(getData(dataCollect.getStaffSimpleListMap(), taskEntity.getId()));
         return taskOutput;
+    }
+
+    private void syncStateParentTask(TaskEntity parentTask) {
+        if (Objects.isNull(parentTask)) return;
+        List<TaskEntity> children = taskRepository.getListTaskByParentId(parentTask.getId());
+        if (children.isEmpty()) return;
+        TaskState newState = getTaskState(children);
+        parentTask.setState(newState);
+        parentTask.setProgressPercent(calculateProgress(children));
+
+        taskRepository.save(parentTask);
+    }
+
+    private TaskState getTaskState(List<TaskEntity> taskEntities) {
+        if (taskEntities == null || taskEntities.isEmpty()) {
+            return TaskState.NOT_STARTED;
+        }
+
+        boolean hasNotStarted = false;
+        boolean hasCompleted = false;
+
+        for (TaskEntity child : taskEntities) {
+            TaskState s = child.getState();
+            if (TaskState.IN_PROGRESS.equals(s)) {
+                return TaskState.IN_PROGRESS;
+            }
+            if (TaskState.NOT_STARTED.equals(s)) {
+                hasNotStarted = true;
+            } else if (TaskState.COMPLETED.equals(s)) {
+                hasCompleted = true;
+            }
+            if (hasNotStarted && hasCompleted) {
+                return TaskState.IN_PROGRESS;
+            }
+        }
+        if (hasNotStarted) {
+            return TaskState.NOT_STARTED;
+        }
+        return TaskState.COMPLETED;
+    }
+
+    private void syncStateProjectTask(TaskEntity parentTask) {
+        ProjectEntity projectEntity = projectRepository.getProjectByTaskId(parentTask.getId());
+        if (Objects.isNull(projectEntity)) return;
+        List<TaskEntity> taskEntities = taskRepository.getListTaskByProjectId(projectEntity.getId());
+        projectEntity.setProgressPercent(calculateProgress(taskEntities));
+        projectRepository.save(projectEntity);
+    }
+
+    private BigDecimal calculateProgress(List<TaskEntity> taskEntities) {
+        if (taskEntities == null || taskEntities.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        long completedCount = taskEntities.stream()
+                .filter(t -> TaskState.COMPLETED.equals(t.getState()))
+                .count();
+        double progress = (double) completedCount / taskEntities.size() * 100;
+        // Sử dụng setScale để làm tròn (ví dụ 2 chữ số thập phân) nếu cần
+        return BigDecimal.valueOf(progress);
     }
 }
