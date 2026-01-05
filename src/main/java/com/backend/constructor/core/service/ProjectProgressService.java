@@ -12,6 +12,7 @@ import com.backend.constructor.core.port.mapper.ProjectMapper;
 import com.backend.constructor.core.port.mapper.TaskMapper;
 import com.backend.constructor.core.port.repository.*;
 import com.backend.constructor.core.service.dto.DataCollect;
+import com.backend.constructor.core.service.internal.InternalTaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ public class ProjectProgressService implements ProjectProgressApi {
     private final TaskRepository taskRepository;
     private final TaskMapper taskMapper;
     private final TaskStaffMapRepository taskStaffMapRepository;
+    private final InternalTaskService internalTaskService;
 
     @Override
     @Transactional
@@ -113,51 +115,13 @@ public class ProjectProgressService implements ProjectProgressApi {
         }
         List<TaskEntity> taskEntities = taskRepository.findAllByIds(taskIds);
         List<TaskStaffMapEntity> taskStaffMapEntities = taskStaffMapRepository.getListByTaskIds(taskIds);
-        DataCollect dataCollect = getTaskDataCollectByIds(taskEntities, taskStaffMapEntities);
+        DataCollect dataCollect = internalTaskService.getTaskDataCollectByIds(taskEntities, taskStaffMapEntities);
         Map<Long, List<TaskOutput>> taskOutputMap = new HashMap<>();
         for (ProjectProgressTaskMapEntity progressTaskMapEntity : progressTaskMapEntities) {
             taskOutputMap.computeIfAbsent(progressTaskMapEntity.getProjectProgressId(), k -> new ArrayList<>())
                     .add(buildTaskOutput(getData(dataCollect.getTaskEntityMap(), progressTaskMapEntity.getTaskId()), dataCollect));
         }
         return taskOutputMap;
-    }
-
-    private DataCollect getTaskDataCollectByIds(List<TaskEntity> taskEntities,
-                                                List<TaskStaffMapEntity> taskStaffMapEntities) {
-        Map<Long, TaskEntity> taskEntityMap = new HashMap<>();
-        Set<Long> staffIds = new HashSet<>();
-        for (TaskEntity taskEntity : taskEntities) {
-            taskEntityMap.put(taskEntity.getId(), taskEntity);
-            addIfNotNull(staffIds, taskEntity.getReviewerId());
-        }
-
-        for (TaskStaffMapEntity taskStaffMapEntity : taskStaffMapEntities) {
-            addIfNotNull(staffIds, taskStaffMapEntity.getStaffId());
-        }
-        Map<Long, StaffEntity> staffMap = staffRepository.getMapStaffEntityByIds(staffIds);
-        Map<Long, List<CodeNameResponse>> staffSimpleListMap = new HashMap<>();
-        for (TaskStaffMapEntity taskStaffMapEntity : taskStaffMapEntities) {
-            CodeNameResponse staffSimple = getStaffSimple(taskStaffMapEntity, staffMap);
-            if (staffSimple == null) continue;
-            staffSimpleListMap.computeIfAbsent(taskStaffMapEntity.getTaskId(), k -> new ArrayList<>())
-                    .add(staffSimple);
-        }
-        return DataCollect.builder()
-                .taskEntityMap(taskEntityMap)
-                .staffEntityMap(staffMap)
-                .staffSimpleListMap(staffSimpleListMap)
-                .build();
-    }
-
-    private CodeNameResponse getStaffSimple(TaskStaffMapEntity taskStaffMapEntity,
-                                            Map<Long, StaffEntity> staffMap) {
-        StaffEntity staffEntity = getData(staffMap, taskStaffMapEntity.getStaffId());
-        if (staffEntity == null) return null;
-        return CodeNameResponse.builder()
-                .id(staffEntity.getId())
-                .code(staffEntity.getCode())
-                .name(staffEntity.getName())
-                .build();
     }
 
     private TaskOutput buildTaskOutput(TaskEntity taskEntity,
