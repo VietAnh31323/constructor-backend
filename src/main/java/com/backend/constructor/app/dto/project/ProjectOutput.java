@@ -37,4 +37,6 @@ public class ProjectOutput {
     private ProjectState state;
 
     private PaymentStatus paymentStatus;
+
+    private BigDecimal progressPercent;
 }

@@ -133,6 +133,7 @@ CREATE TABLE project
     contract_files   TEXT,
     sample_images    TEXT,
     project_images   TEXT,
+    progress_percent NUMERIC,
     created_at       TIMESTAMP,
     updated_at       TIMESTAMP,
     created_by       VARCHAR,
@@ -176,11 +177,11 @@ CREATE TABLE progress
     updated_by  VARCHAR
 );
 
-CREATE TABLE project_progress_map
+CREATE TABLE project_progress
 (
     id          BIGSERIAL PRIMARY KEY,
-    project_id  BIGINT REFERENCES project (id),
-    progress_id BIGINT REFERENCES progress (id),
+    project_id  BIGINT not null REFERENCES project (id),
+    progress_id BIGINT not null REFERENCES progress (id),
     state       VARCHAR,
     created_at  TIMESTAMP,
     updated_at  TIMESTAMP,
@@ -195,10 +196,12 @@ CREATE TABLE task
     name             VARCHAR,
     start_date       TIMESTAMP,
     end_date         TIMESTAMP,
-    progress_percent FLOAT,
-    reviewer_id      BIGINT,
-    parent_id        BIGINT,
+    progress_percent NUMERIC,
+    reviewer_id      BIGINT references staff (id),
+    parent_id        BIGINT references task (id),
+    priority_level   VARCHAR,
     state            VARCHAR,
+    description      TEXT,
     created_at       TIMESTAMP,
     updated_at       TIMESTAMP,
     created_by       VARCHAR,
@@ -208,8 +211,8 @@ CREATE TABLE task
 CREATE TABLE task_staff_map
 (
     id         BIGSERIAL PRIMARY KEY,
-    task_id    BIGINT,
-    staff_id   BIGINT,
+    task_id    BIGINT references task (id),
+    staff_id   BIGINT references staff (id),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     created_by VARCHAR,
@@ -218,13 +221,13 @@ CREATE TABLE task_staff_map
 
 CREATE TABLE project_progress_task_map
 (
-    id                      BIGSERIAL PRIMARY KEY,
-    project_progress_map_id BIGINT REFERENCES project_progress_map (id),
-    task_id                 BIGINT,
-    created_at              TIMESTAMP,
-    updated_at              TIMESTAMP,
-    created_by              VARCHAR,
-    updated_by              VARCHAR
+    id                  BIGSERIAL PRIMARY KEY,
+    project_progress_id BIGINT not null REFERENCES project_progress (id),
+    task_id             BIGINT not null references task (id),
+    created_at          TIMESTAMP,
+    updated_at          TIMESTAMP,
+    created_by          VARCHAR,
+    updated_by          VARCHAR
 );
 
 CREATE TABLE steel_project

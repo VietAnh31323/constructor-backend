@@ -1,6 +1,7 @@
 package com.backend.constructor.infras.repository;
 
 import com.backend.constructor.app.dto.progress.ProgressFilterParam;
+import com.backend.constructor.common.base.dto.response.CodeNameResponse;
 import com.backend.constructor.common.base.repository.JpaRepositoryAdapter;
 import com.backend.constructor.common.base.repository.filter.Filter;
 import com.backend.constructor.common.base.repository.filter.FilterFlag;
@@ -14,6 +15,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
@@ -37,5 +42,15 @@ public class ProgressRepositoryImpl extends JpaRepositoryAdapter<ProgressEntity>
                 .withContext(entityManager)
                 .build(ProgressEntity.class);
         return filter.getPage();
+    }
+
+    @Override
+    public Map<Long, CodeNameResponse> getMapProgressSimpleByIds(Set<Long> progressIds) {
+        return findAllByIds(progressIds).stream()
+                .collect(Collectors.toMap(ProgressEntity::getId, entity -> CodeNameResponse.builder()
+                        .id(entity.getId())
+                        .code(entity.getCode())
+                        .name(entity.getName())
+                        .build()));
     }
 }
