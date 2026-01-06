@@ -58,7 +58,7 @@ public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> imple
                 .build(StaffEntity.class);
         List<StaffEntity> staffEntities = filter.getList();
         if (staffEntities.isEmpty()) {
-            throw BusinessException.exception("CST002");
+            throw BusinessException.exception("CST020");
         }
         return staffEntities.getFirst();
     }

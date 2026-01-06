@@ -402,7 +402,61 @@ CREATE TABLE steel_category_line
 
 
 
+CREATE TABLE project_progress
+(
+    id          BIGSERIAL PRIMARY KEY,
+    project_id  BIGINT not null REFERENCES project (id),
+    progress_id BIGINT not null REFERENCES progress (id),
+    state       VARCHAR,
+    created_at  TIMESTAMP,
+    updated_at  TIMESTAMP,
+    created_by  VARCHAR,
+    updated_by  VARCHAR
+);
 
+CREATE TABLE task
+(
+    id               BIGSERIAL PRIMARY KEY,
+    code             VARCHAR,
+    name             VARCHAR,
+    start_date       TIMESTAMP,
+    end_date         TIMESTAMP,
+    progress_percent NUMERIC,
+    reviewer_id      BIGINT references staff (id),
+    parent_id        BIGINT references task (id),
+    priority_level   VARCHAR,
+    state            VARCHAR,
+    description      TEXT,
+    created_at       TIMESTAMP,
+    updated_at       TIMESTAMP,
+    created_by       VARCHAR,
+    updated_by       VARCHAR
+);
+
+CREATE TABLE task_staff_map
+(
+    id         BIGSERIAL PRIMARY KEY,
+    task_id    BIGINT references task (id),
+    staff_id   BIGINT references staff (id),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR,
+    updated_by VARCHAR
+);
+
+CREATE TABLE project_progress_task_map
+(
+    id                  BIGSERIAL PRIMARY KEY,
+    project_progress_id BIGINT not null REFERENCES project_progress (id),
+    task_id             BIGINT not null references task (id),
+    created_at          TIMESTAMP,
+    updated_at          TIMESTAMP,
+    created_by          VARCHAR,
+    updated_by          VARCHAR
+);
+
+
+alter table project add column progress_percent numeric
 
 
 
