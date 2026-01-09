@@ -44,6 +44,12 @@ public class TaskController implements TaskApi {
         return taskService.getDetail(id);
     }
 
+    @Override
+    @GetMapping("/list")
+    public List<TaskOutput> getListTaskByProgress(@RequestParam Long projectProgressId) {
+        return taskService.getListTaskByProgress(projectProgressId);
+    }
+
     @Operation(summary = "Lấy danh sách công việc con của công việc cha")
     @Override
     @GetMapping("/task-sub/list")

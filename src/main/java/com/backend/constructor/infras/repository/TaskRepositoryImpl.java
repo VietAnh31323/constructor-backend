@@ -50,4 +50,15 @@ public class TaskRepositoryImpl extends JpaRepositoryAdapter<TaskEntity> impleme
                 .build(TaskEntity.class);
         return filter.getList();
     }
+
+    @Override
+    public List<TaskEntity> getListTaskByProjectProgressId(Long projectProgressId) {
+        Filter<TaskEntity> filter = Filter.builder()
+                .leftJoin(TaskEntity_.ID, new FilterJoiner(ProjectProgressTaskMapEntity.class, ProjectProgressTaskMapEntity_.TASK_ID))
+                .filter()
+                .isEqual(ProjectProgressTaskMapEntity_.PROJECT_PROGRESS_ID, projectProgressId)
+                .withContext(entityManager)
+                .build(TaskEntity.class);
+        return filter.getList();
+    }
 }

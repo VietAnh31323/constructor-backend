@@ -118,6 +118,14 @@ public class TaskService implements TaskApi {
     }
 
     @Override
+    public List<TaskOutput> getListTaskByProgress(Long projectProgressId) {
+        List<TaskEntity> taskEntities = taskRepository.getListTaskByProjectProgressId(projectProgressId);
+        List<TaskStaffMapEntity> taskStaffMapEntities = taskStaffMapRepository.getListByTaskIds(taskEntities.stream().map(TaskEntity::getId).collect(Collectors.toSet()));
+        DataCollect dataCollect = internalTaskService.getTaskDataCollectByIds(taskEntities, taskStaffMapEntities);
+        return taskEntities.stream().map(entity -> buildTaskOutput(entity, dataCollect)).toList();
+    }
+
+    @Override
     public List<TaskOutput> getListTaskSub(Long parentId) {
         List<TaskEntity> taskEntities = taskRepository.getListTaskByParentId(parentId);
         List<TaskStaffMapEntity> taskStaffMapEntities = taskStaffMapRepository.getListByTaskIds(taskEntities.stream().map(TaskEntity::getId).collect(Collectors.toSet()));

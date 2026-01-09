@@ -16,6 +16,8 @@ public interface TaskApi {
 
     TaskDto getDetail(Long id);
 
+    List<TaskOutput> getListTaskByProgress(Long projectProgressId);
+
     List<TaskOutput> getListTaskSub(Long parentId);
 
     void updateState(UpdateStateDto input);

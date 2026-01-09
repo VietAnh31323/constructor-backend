@@ -95,6 +95,19 @@ public class SteelCategoryService implements SteelCategoryApi {
         return steelCategoryEntities.map(steelCategoryMapper::toOutput);
     }
 
+    @Override
+    public List<SteelCategoryLineDto> getListSteelCategoryLine(Long steelCategoryId) {
+        List<SteelCategoryLineEntity> steelCategoryLineEntities = steelCategoryLineRepository.getListByCategoryId(steelCategoryId);
+        return steelCategoryLineEntities.stream().map(this::buildSteelCategoryLineDto).toList();
+    }
+
+    private SteelCategoryLineDto buildSteelCategoryLineDto(SteelCategoryLineEntity entity) {
+        return SteelCategoryLineDto.builder()
+                .id(entity.getId())
+                .paramName(entity.getParamName())
+                .build();
+    }
+
     private void saveSteelCategoryLines(List<SteelCategoryLineDto> steelCategoryLines,
                                         Long steelCategoryId) {
         List<SteelCategoryLineEntity> steelCategoryLineEntities = new ArrayList<>();
