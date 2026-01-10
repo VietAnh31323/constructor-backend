@@ -3,6 +3,7 @@ package com.backend.constructor.core.service;
 import com.backend.constructor.app.api.SteelApi;
 import com.backend.constructor.app.dto.steel.SteelDto;
 import com.backend.constructor.app.dto.steel.SteelLineDto;
+import com.backend.constructor.app.dto.steel.SteelOutput;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.core.domain.entity.SteelEntity;
 import com.backend.constructor.core.domain.entity.SteelLineEntity;
@@ -59,6 +60,11 @@ public class SteelService implements SteelApi {
         List<SteelLineEntity> steelLineEntities = steelLineRepository.getListBySteelId(steelEntity.getId());
         steelDto.setSteelLines(getSteelLines(steelLineEntities));
         return steelDto;
+    }
+
+    @Override
+    public List<SteelOutput> getListSteelByAssemblyId(Long assemblyId) {
+        return List.of();
     }
 
     private void saveSteelLines(Long steelId,

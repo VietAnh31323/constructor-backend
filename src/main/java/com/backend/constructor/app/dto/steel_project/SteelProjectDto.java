@@ -5,6 +5,7 @@ import lombok.*;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -28,6 +29,8 @@ public class SteelProjectDto {
     private LocalDate deliveryDate;
 
     private String description;
+
+    private List<SteelProjectAssemblyMapDto> steelProjectAssemblyMaps;
 
     public void trimData() {
         this.code = StringUtils.trim(this.code);

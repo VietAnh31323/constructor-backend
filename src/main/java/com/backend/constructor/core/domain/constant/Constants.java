@@ -9,6 +9,7 @@ public class Constants {
     public static final String MTT = "MTT";
     public static final String CV = "CV";
     public static final String CK = "CK";
+    public static final String DATKT = "DATKT";
 
     private Constants() {
     }
