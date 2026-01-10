@@ -21,6 +21,7 @@ public class AssemblyService implements AssemblyApi {
     private final GenerateCodeService generateCodeService;
 
     @Override
+    @Transactional
     public IdResponse create(AssemblyDto input) {
         generateCodeService.generateCode(input, Constants.CK, AssemblyEntity.class);
         AssemblyEntity assemblyEntity = AssemblyEntity.builder()
@@ -32,6 +33,7 @@ public class AssemblyService implements AssemblyApi {
     }
 
     @Override
+    @Transactional
     public IdResponse update(AssemblyDto input) {
         generateCodeService.generateCode(input, Constants.CK, AssemblyEntity.class);
         AssemblyEntity assemblyEntity = assemblyRepository.getAssemblyById(input.getId());
