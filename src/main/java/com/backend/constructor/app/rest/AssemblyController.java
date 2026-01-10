@@ -26,6 +26,12 @@ public class AssemblyController implements AssemblyApi {
     }
 
     @Override
+    @PutMapping
+    public IdResponse update(@RequestBody @Valid AssemblyDto input) {
+        return assemblyService.update(input);
+    }
+
+    @Override
     @GetMapping("/list")
     @HandsomePaging
     public Page<AssemblyDto> getListAssembly(@RequestParam(required = false) String search,

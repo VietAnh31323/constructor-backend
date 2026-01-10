@@ -32,6 +32,16 @@ public class AssemblyService implements AssemblyApi {
     }
 
     @Override
+    public IdResponse update(AssemblyDto input) {
+        generateCodeService.generateCode(input, Constants.CK, AssemblyEntity.class);
+        AssemblyEntity assemblyEntity = assemblyRepository.getAssemblyById(input.getId());
+        assemblyEntity.setCode(input.getCode());
+        assemblyEntity.setName(input.getName());
+        assemblyRepository.save(assemblyEntity);
+        return IdResponse.builder().id(assemblyEntity.getId()).build();
+    }
+
+    @Override
     public Page<AssemblyDto> getListAssembly(String search, Pageable pageable) {
         Page<AssemblyEntity> assemblyEntities = assemblyRepository.getPageAssembly(search, pageable);
         return assemblyEntities.map(entity -> AssemblyDto.builder()

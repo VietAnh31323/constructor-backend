@@ -8,5 +8,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AssemblyRepository extends BaseRepository<AssemblyEntity> {
+    AssemblyEntity getAssemblyById(Long id);
+
     Page<AssemblyEntity> getPageAssembly(String search, Pageable pageable);
 }

@@ -11,5 +11,8 @@ public interface AssemblyApi {
     IdResponse create(AssemblyDto input);
 
     @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    IdResponse update(AssemblyDto input);
+
+    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
     Page<AssemblyDto> getListAssembly(String search, Pageable pageable);
 }
