@@ -270,12 +270,23 @@ CREATE TABLE steel_project_table_map
 CREATE TABLE assembly
 (
     id         BIGSERIAL PRIMARY KEY,
+    code       VARCHAR,
     name       VARCHAR,
-    quantity   NUMERIC,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     created_by VARCHAR,
     updated_by VARCHAR
+);
+
+CREATE TABLE steel_project_assembly_map
+(
+    id               BIGSERIAL PRIMARY KEY,
+    assembly_id      BIGINT NOT NULL references assembly (id),
+    steel_project_id BIGINT NOT NULL references steel_project (id),
+    created_at       TIMESTAMP,
+    updated_at       TIMESTAMP,
+    created_by       VARCHAR,
+    updated_by       VARCHAR
 );
 
 CREATE TABLE summary_table_assembly_map
@@ -456,7 +467,8 @@ CREATE TABLE project_progress_task_map
 );
 
 
-alter table project add column progress_percent numeric
+alter table project
+    add column progress_percent numeric
 
 
 
