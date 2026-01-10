@@ -45,8 +45,20 @@ public class SteelService implements SteelApi {
     }
 
     @Override
+    @Transactional
+    public void delete(Long id) {
+        SteelEntity steelEntity = steelRepository.getSteelById(id);
+        clearSteelLines(steelEntity.getId());
+        steelRepository.delete(steelEntity);
+    }
+
+    @Override
     public SteelDto getDetail(Long id) {
-        return null;
+        SteelEntity steelEntity = steelRepository.getSteelById(id);
+        SteelDto steelDto = steelMapper.toDto(steelEntity);
+        List<SteelLineEntity> steelLineEntities = steelLineRepository.getListBySteelId(steelEntity.getId());
+        steelDto.setSteelLines(getSteelLines(steelLineEntities));
+        return steelDto;
     }
 
     private void saveSteelLines(Long steelId,
@@ -66,5 +78,18 @@ public class SteelService implements SteelApi {
     private void clearSteelLines(Long steelId) {
         List<SteelLineEntity> steelLineEntities = steelLineRepository.getListBySteelId(steelId);
         steelLineRepository.deleteAll(steelLineEntities);
+    }
+
+    private List<SteelLineDto> getSteelLines(List<SteelLineEntity> steelLineEntities) {
+        List<SteelLineDto> steelLines = new ArrayList<>();
+        for (SteelLineEntity steelLineEntity : steelLineEntities) {
+            SteelLineDto steelLineDto = SteelLineDto.builder()
+                    .id(steelLineEntity.getId())
+                    .paramName(steelLineEntity.getParamName())
+                    .value(steelLineEntity.getValue())
+                    .build();
+            steelLines.add(steelLineDto);
+        }
+        return steelLines;
     }
 }

@@ -12,5 +12,8 @@ public interface SteelApi {
     IdResponse update(SteelDto input);
 
     @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    void delete(Long id);
+
+    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
     SteelDto getDetail(Long id);
 }
