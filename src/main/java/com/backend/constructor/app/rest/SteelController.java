@@ -28,6 +28,12 @@ public class SteelController implements SteelApi {
     }
 
     @Override
+    @DeleteMapping
+    public void delete(@RequestParam Long id) {
+        steelService.delete(id);
+    }
+
+    @Override
     @GetMapping
     public SteelDto getDetail(Long id) {
         return steelService.getDetail(id);

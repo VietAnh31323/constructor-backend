@@ -45,6 +45,14 @@ public class SteelService implements SteelApi {
     }
 
     @Override
+    @Transactional
+    public void delete(Long id) {
+        SteelEntity steelEntity = steelRepository.getSteelById(id);
+        clearSteelLines(steelEntity.getId());
+        steelRepository.delete(steelEntity);
+    }
+
+    @Override
     public SteelDto getDetail(Long id) {
         return null;
     }
