@@ -283,10 +283,48 @@ CREATE TABLE steel_project_assembly_map
     id               BIGSERIAL PRIMARY KEY,
     assembly_id      BIGINT NOT NULL references assembly (id),
     steel_project_id BIGINT NOT NULL references steel_project (id),
+    same_quantity    bigint,
     created_at       TIMESTAMP,
     updated_at       TIMESTAMP,
     created_by       VARCHAR,
     updated_by       VARCHAR
+);
+
+CREATE TABLE project_assembly_steel_category
+(
+    id                            BIGSERIAL PRIMARY KEY,
+    steel_project_assembly_map_id BIGINT NOT NULL references steel_project_assembly_map (id),
+    images                        TEXT,
+    created_at                    TIMESTAMP,
+    updated_at                    TIMESTAMP,
+    created_by                    VARCHAR,
+    updated_by                    VARCHAR
+);
+
+CREATE TABLE steel
+(
+    id            BIGSERIAL PRIMARY KEY,
+    images        TEXT,
+    bar_code      BIGINT,
+    bar_quantity  BIGINT,
+    splice_length NUMERIC,
+    bar_diameter  NUMERIC,
+    created_at    TIMESTAMP,
+    updated_at    TIMESTAMP,
+    created_by    VARCHAR,
+    updated_by    VARCHAR
+);
+
+CREATE TABLE steel_line
+(
+    id         BIGSERIAL PRIMARY KEY,
+    steel_id   BIGINT NOT NULL references steel (id),
+    param_name VARCHAR,
+    value      NUMERIC,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR,
+    updated_by VARCHAR
 );
 
 CREATE TABLE summary_table_assembly_map

@@ -32,6 +32,12 @@ public class AssemblyController implements AssemblyApi {
     }
 
     @Override
+    @DeleteMapping
+    public void delete(@RequestParam Long id) {
+        assemblyService.delete(id);
+    }
+
+    @Override
     @GetMapping("/list")
     @HandsomePaging
     public Page<AssemblyDto> getListAssembly(@RequestParam(required = false) String search,

@@ -44,6 +44,13 @@ public class AssemblyService implements AssemblyApi {
     }
 
     @Override
+    @Transactional
+    public void delete(Long id) {
+        AssemblyEntity assemblyEntity = assemblyRepository.getAssemblyById(id);
+        assemblyRepository.delete(assemblyEntity);
+    }
+
+    @Override
     public Page<AssemblyDto> getListAssembly(String search, Pageable pageable) {
         Page<AssemblyEntity> assemblyEntities = assemblyRepository.getPageAssembly(search, pageable);
         return assemblyEntities.map(entity -> AssemblyDto.builder()
