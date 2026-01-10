@@ -2,11 +2,14 @@ package com.backend.constructor.app.rest;
 
 import com.backend.constructor.app.api.SteelApi;
 import com.backend.constructor.app.dto.steel.SteelDto;
+import com.backend.constructor.app.dto.steel.SteelOutput;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -37,5 +40,11 @@ public class SteelController implements SteelApi {
     @GetMapping
     public SteelDto getDetail(Long id) {
         return steelService.getDetail(id);
+    }
+
+    @Override
+    @GetMapping("/by-assembly/list")
+    public List<SteelOutput> getListSteelByAssemblyId(@RequestParam Long assemblyId) {
+        return steelService.getListSteelByAssemblyId(assemblyId);
     }
 }

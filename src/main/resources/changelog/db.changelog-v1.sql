@@ -281,20 +281,21 @@ CREATE TABLE assembly
 CREATE TABLE steel_project_assembly_map
 (
     id               BIGSERIAL PRIMARY KEY,
-    assembly_id      BIGINT NOT NULL references assembly (id),
     steel_project_id BIGINT NOT NULL references steel_project (id),
+    assembly_name    varchar,
     same_quantity    bigint,
+    steel_ids        TEXT,
     created_at       TIMESTAMP,
     updated_at       TIMESTAMP,
     created_by       VARCHAR,
     updated_by       VARCHAR
 );
 
-CREATE TABLE project_assembly_steel_category
+CREATE TABLE project_assembly_steel_map
 (
     id                            BIGSERIAL PRIMARY KEY,
     steel_project_assembly_map_id BIGINT NOT NULL references steel_project_assembly_map (id),
-    images                        TEXT,
+    steel_id                      BIGINT NOT NULL references steel (id),
     created_at                    TIMESTAMP,
     updated_at                    TIMESTAMP,
     created_by                    VARCHAR,
