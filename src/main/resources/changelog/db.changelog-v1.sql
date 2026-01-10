@@ -519,3 +519,30 @@ CREATE TABLE assembly
     created_by VARCHAR,
     updated_by VARCHAR
 );
+
+
+CREATE TABLE steel
+(
+    id            BIGSERIAL PRIMARY KEY,
+    images        TEXT,
+    bar_code      BIGINT,
+    bar_quantity  BIGINT,
+    splice_length NUMERIC,
+    bar_diameter  NUMERIC,
+    created_at    TIMESTAMP,
+    updated_at    TIMESTAMP,
+    created_by    VARCHAR,
+    updated_by    VARCHAR
+);
+
+CREATE TABLE steel_line
+(
+    id         BIGSERIAL PRIMARY KEY,
+    steel_id   BIGINT NOT NULL references steel (id),
+    param_name VARCHAR,
+    value      NUMERIC,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR,
+    updated_by VARCHAR
+);
