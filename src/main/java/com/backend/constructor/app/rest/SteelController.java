@@ -1,0 +1,35 @@
+package com.backend.constructor.app.rest;
+
+import com.backend.constructor.app.api.SteelApi;
+import com.backend.constructor.app.dto.steel.SteelDto;
+import com.backend.constructor.common.base.dto.response.IdResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
+
+@Slf4j
+@RestController
+@RequestMapping("/api/v1/steel")
+@RequiredArgsConstructor
+public class SteelController implements SteelApi {
+    private final SteelApi steelService;
+
+    @Override
+    @PostMapping
+    public IdResponse create(@RequestBody @Valid SteelDto input) {
+        return steelService.create(input);
+    }
+
+    @Override
+    @PutMapping
+    public IdResponse update(@RequestBody @Valid SteelDto input) {
+        return steelService.update(input);
+    }
+
+    @Override
+    @GetMapping
+    public SteelDto getDetail(Long id) {
+        return steelService.getDetail(id);
+    }
+}
