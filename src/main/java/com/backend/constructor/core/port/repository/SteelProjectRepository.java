@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SteelProjectRepository extends BaseRepository<SteelProjectEntity> {
+    SteelProjectEntity getSteelProjectById(Long id);
 }
