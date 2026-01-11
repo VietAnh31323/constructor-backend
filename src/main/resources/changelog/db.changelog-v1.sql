@@ -310,6 +310,7 @@ CREATE TABLE steel
     bar_quantity  BIGINT,
     splice_length NUMERIC,
     bar_diameter  NUMERIC,
+    length        NUMERIC,
     created_at    TIMESTAMP,
     updated_at    TIMESTAMP,
     created_by    VARCHAR,

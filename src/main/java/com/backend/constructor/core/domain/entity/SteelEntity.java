@@ -29,7 +29,7 @@ public class SteelEntity extends BaseEntity {
 
     private Long barQuantity;
 
-    private BigDecimal sliceLength;
+    private BigDecimal spliceLength;
 
     private BigDecimal barDiameter;
 
