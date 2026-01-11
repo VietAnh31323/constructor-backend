@@ -33,6 +33,7 @@ public class SteelProjectRepositoryImpl extends JpaRepositoryAdapter<SteelProjec
                 .isContains(SteelProjectEntity_.NAME, trimSearch, FilterFlag.UNACCENT_CASE_SENSITIVE)
                 .filter()
                 .pageable(pageable)
+                .withContext(entityManager)
                 .build(SteelProjectEntity.class);
         return filter.getPage();
     }
