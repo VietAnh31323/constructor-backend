@@ -547,3 +547,33 @@ CREATE TABLE steel_line
     created_by VARCHAR,
     updated_by VARCHAR
 );
+
+
+CREATE TABLE steel_project
+(
+    id            BIGSERIAL PRIMARY KEY,
+    code          VARCHAR,
+    name          VARCHAR,
+    owner         VARCHAR,
+    address       VARCHAR,
+    sign_date     TIMESTAMP,
+    delivery_date TIMESTAMP,
+    description   TEXT,
+    created_at    TIMESTAMP,
+    updated_at    TIMESTAMP,
+    created_by    VARCHAR,
+    updated_by    VARCHAR
+);
+
+CREATE TABLE steel_project_assembly_map
+(
+    id               BIGSERIAL PRIMARY KEY,
+    steel_project_id BIGINT NOT NULL references steel_project (id),
+    assembly_name    varchar,
+    same_quantity    bigint,
+    steel_ids        TEXT,
+    created_at       TIMESTAMP,
+    updated_at       TIMESTAMP,
+    created_by       VARCHAR,
+    updated_by       VARCHAR
+);
