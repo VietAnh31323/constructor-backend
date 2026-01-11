@@ -41,12 +41,22 @@ public class SteelProjectService implements SteelProjectApi {
     @Override
     @Transactional
     public IdResponse update(SteelProjectDto input) {
-        return null;
+        SteelProjectEntity steelProject = steelProjectRepository.getSteelProjectById(input.getId());
+        generateCodeService.generateCode(input, Constants.DATKT, SteelProjectEntity.class);
+        steelProjectMapper.update(input, steelProject);
+        steelProjectRepository.save(steelProject);
+        clearSteelProjectAssemblyMaps(steelProject.getId());
+        saveSteelProjectAssemblyMaps(input.getSteelProjectAssemblyMaps(), steelProject.getId());
+        return IdResponse.builder().id(steelProject.getId()).build();
     }
 
     @Override
     public SteelProjectDto getDetail(Long id) {
-        return null;
+        SteelProjectEntity steelProject = steelProjectRepository.getSteelProjectById(id);
+        SteelProjectDto steelProjectDto = steelProjectMapper.toDto(steelProject);
+        List<SteelProjectAssemblyMapEntity> steelProjectAssemblyMapEntities = steelProjectAssemblyMapRepository.getListBySteelProjectId(steelProject.getId());
+        steelProjectDto.setSteelProjectAssemblyMaps(getSteelProjectAssemblyMapDto(steelProjectAssemblyMapEntities));
+        return steelProjectDto;
     }
 
     private void saveSteelProjectAssemblyMaps(List<SteelProjectAssemblyMapDto> steelProjectAssemblyMaps,
@@ -62,5 +72,23 @@ public class SteelProjectService implements SteelProjectApi {
             steelProjectAssemblyMapEntities.add(steelProjectAssemblyMapEntity);
         }
         steelProjectAssemblyMapRepository.saveAll(steelProjectAssemblyMapEntities);
+    }
+
+    private void clearSteelProjectAssemblyMaps(Long steelProjectId) {
+        List<SteelProjectAssemblyMapEntity> projectAssemblyMapEntities = steelProjectAssemblyMapRepository.getListBySteelProjectId(steelProjectId);
+        steelProjectAssemblyMapRepository.deleteAll(projectAssemblyMapEntities);
+    }
+
+    private List<SteelProjectAssemblyMapDto> getSteelProjectAssemblyMapDto(List<SteelProjectAssemblyMapEntity> steelProjectAssemblyMapEntities) {
+        List<SteelProjectAssemblyMapDto> steelProjectAssemblyMaps = new ArrayList<>();
+        for (SteelProjectAssemblyMapEntity steelProjectAssemblyMapEntity : steelProjectAssemblyMapEntities) {
+            SteelProjectAssemblyMapDto steelProjectAssemblyMapDto = SteelProjectAssemblyMapDto.builder()
+                    .id(steelProjectAssemblyMapEntity.getId())
+                    .assemblyName(steelProjectAssemblyMapEntity.getAssemblyName())
+                    .sameQuantity(steelProjectAssemblyMapEntity.getSameQuantity())
+                    .build();
+            steelProjectAssemblyMaps.add(steelProjectAssemblyMapDto);
+        }
+        return steelProjectAssemblyMaps;
     }
 }
