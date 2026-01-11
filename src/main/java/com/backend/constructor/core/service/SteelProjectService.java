@@ -4,6 +4,7 @@ import com.backend.constructor.app.api.SteelProjectApi;
 import com.backend.constructor.app.dto.steel.SteelOutput;
 import com.backend.constructor.app.dto.steel_project.SteelProjectAssemblyMapDto;
 import com.backend.constructor.app.dto.steel_project.SteelProjectDto;
+import com.backend.constructor.app.dto.steel_project.SteelProjectOutput;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.common.service.GenerateCodeService;
 import com.backend.constructor.core.domain.constant.Constants;
@@ -13,6 +14,8 @@ import com.backend.constructor.core.port.mapper.SteelProjectMapper;
 import com.backend.constructor.core.port.repository.SteelProjectAssemblyMapRepository;
 import com.backend.constructor.core.port.repository.SteelProjectRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,6 +62,12 @@ public class SteelProjectService implements SteelProjectApi {
         return steelProjectDto;
     }
 
+    @Override
+    public Page<SteelProjectOutput> getListSteelProject(String search, Pageable pageable) {
+        Page<SteelProjectEntity> steelProjectEntities = steelProjectRepository.getPageSteelProject(search, pageable);
+        return steelProjectEntities.map(this::buildSteelProjectOutput);
+    }
+
     private void saveSteelProjectAssemblyMaps(List<SteelProjectAssemblyMapDto> steelProjectAssemblyMaps,
                                               Long steelProjectId) {
         List<SteelProjectAssemblyMapEntity> steelProjectAssemblyMapEntities = new ArrayList<>();
@@ -90,5 +99,9 @@ public class SteelProjectService implements SteelProjectApi {
             steelProjectAssemblyMaps.add(steelProjectAssemblyMapDto);
         }
         return steelProjectAssemblyMaps;
+    }
+
+    private SteelProjectOutput buildSteelProjectOutput(SteelProjectEntity entity) {
+        return steelProjectMapper.toOutput(entity);
     }
 }
