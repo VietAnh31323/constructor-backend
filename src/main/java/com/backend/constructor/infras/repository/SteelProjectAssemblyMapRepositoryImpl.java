@@ -1,6 +1,7 @@
 package com.backend.constructor.infras.repository;
 
 import com.backend.constructor.common.base.repository.JpaRepositoryAdapter;
+import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.core.domain.entity.SteelProjectAssemblyMapEntity;
 import com.backend.constructor.core.port.repository.SteelProjectAssemblyMapRepository;
 import com.backend.constructor.infras.repository.jpa.SteelProjectAssemblyMapJpaRepository;
@@ -17,5 +18,10 @@ public class SteelProjectAssemblyMapRepositoryImpl extends JpaRepositoryAdapter<
     @Override
     public List<SteelProjectAssemblyMapEntity> getListBySteelProjectId(Long steelProjectId) {
         return steelProjectAssemblyMapJpaRepository.findAllBySteelProjectId(steelProjectId);
+    }
+
+    @Override
+    public SteelProjectAssemblyMapEntity getSteelProjectAssemblyMapById(Long id) {
+        return findById(id).orElseThrow(() -> BusinessException.exception("CST002"));
     }
 }

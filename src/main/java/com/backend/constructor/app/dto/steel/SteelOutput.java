@@ -27,4 +27,6 @@ public class SteelOutput {
     private Long barQuantity;
 
     private BigDecimal sliceLength;
+
+    private BigDecimal length;
 }
