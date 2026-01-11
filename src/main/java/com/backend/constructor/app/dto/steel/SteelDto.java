@@ -27,7 +27,7 @@ public class SteelDto {
     private Long barQuantity;
 
     @NotNull
-    private BigDecimal sliceLength;
+    private BigDecimal spliceLength;
 
     @NotNull
     private BigDecimal barDiameter;
