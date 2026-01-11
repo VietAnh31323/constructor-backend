@@ -7,13 +7,16 @@ import com.backend.constructor.app.dto.steel.SteelOutput;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.core.domain.entity.SteelEntity;
 import com.backend.constructor.core.domain.entity.SteelLineEntity;
+import com.backend.constructor.core.domain.entity.SteelProjectAssemblyMapEntity;
 import com.backend.constructor.core.port.mapper.SteelMapper;
 import com.backend.constructor.core.port.repository.SteelLineRepository;
+import com.backend.constructor.core.port.repository.SteelProjectAssemblyMapRepository;
 import com.backend.constructor.core.port.repository.SteelRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,13 +27,14 @@ public class SteelService implements SteelApi {
     private final SteelRepository steelRepository;
     private final SteelMapper steelMapper;
     private final SteelLineRepository steelLineRepository;
+    private final SteelProjectAssemblyMapRepository steelProjectAssemblyMapRepository;
 
     @Override
     @Transactional
     public IdResponse create(SteelDto input) {
         SteelEntity steelEntity = steelMapper.toEntity(input);
         steelRepository.save(steelEntity);
-        saveSteelLines(steelEntity.getId(), input.getSteelLines());
+        saveSteelLines(steelEntity, input.getSteelLines());
         return IdResponse.builder().id(steelEntity.getId()).build();
     }
 
@@ -41,7 +45,7 @@ public class SteelService implements SteelApi {
         steelMapper.update(input, steelEntity);
         steelRepository.save(steelEntity);
         clearSteelLines(steelEntity.getId());
-        saveSteelLines(steelEntity.getId(), input.getSteelLines());
+        saveSteelLines(steelEntity, input.getSteelLines());
         return IdResponse.builder().id(steelEntity.getId()).build();
     }
 
@@ -64,21 +68,26 @@ public class SteelService implements SteelApi {
 
     @Override
     public List<SteelOutput> getListSteelByAssemblyId(Long assemblyId) {
-        return List.of();
+        SteelProjectAssemblyMapEntity steelProjectAssemblyMapEntity = steelProjectAssemblyMapRepository.getSteelProjectAssemblyMapById(assemblyId);
+        List<SteelEntity> steelEntities = steelRepository.findAllByIds(steelProjectAssemblyMapEntity.getSteelIds());
+        return steelEntities.stream().map(steelMapper::toOutput).toList();
     }
 
-    private void saveSteelLines(Long steelId,
+    private void saveSteelLines(SteelEntity steelEntity,
                                 List<SteelLineDto> steelLines) {
         List<SteelLineEntity> steelLineEntities = new ArrayList<>();
+        BigDecimal length = BigDecimal.ZERO;
         for (SteelLineDto steelLine : steelLines) {
             SteelLineEntity steelLineEntity = SteelLineEntity.builder()
-                    .steelId(steelId)
+                    .steelId(steelEntity.getId())
                     .paramName(steelLine.getParamName())
                     .value(steelLine.getValue())
                     .build();
             steelLineEntities.add(steelLineEntity);
+            length = length.add(steelLine.getValue());
         }
         steelLineRepository.saveAll(steelLineEntities);
+        steelEntity.setLength(length);
     }
 
     private void clearSteelLines(Long steelId) {

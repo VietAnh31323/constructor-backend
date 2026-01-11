@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface SteelProjectAssemblyMapRepository extends BaseRepository<SteelProjectAssemblyMapEntity> {
     List<SteelProjectAssemblyMapEntity> getListBySteelProjectId(Long steelProjectId);
+
+    SteelProjectAssemblyMapEntity getSteelProjectAssemblyMapById(Long id);
 }
