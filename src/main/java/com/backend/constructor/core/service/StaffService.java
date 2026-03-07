@@ -62,11 +62,13 @@ public class StaffService implements StaffApi {
     @Override
     @Transactional
     public IdResponse update(StaffDto input) {
+        System.out.printf("Staff updated: %s", input);
         input.trimData();
         generateCodeService.generateCode(input, Constants.NS, StaffEntity.class);
         StaffEntity staffEntity = staffRepository.getStaffById(input.getId());
         staffMapper.update(input, staffEntity);
         staffEntity.setName(joinName(input.getFirstName(), input.getLastName()));
+        System.out.printf("Staff updated: %s", staffEntity);
         uniqueValidationService.validate(staffEntity);
         staffRepository.save(staffEntity);
         return IdResponse.builder().id(staffEntity.getId()).build();

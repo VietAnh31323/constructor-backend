@@ -15,5 +15,6 @@ public interface StaffMapper extends EntityMapper<StaffEntity, StaffDto> {
 
     @Override
     @Mapping(target = "genPassword", ignore = true)
+    @Mapping(target = "id", ignore = true)
     void update(StaffDto dto, @MappingTarget StaffEntity entity);
 }

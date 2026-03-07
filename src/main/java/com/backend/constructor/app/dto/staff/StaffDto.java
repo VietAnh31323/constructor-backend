@@ -17,14 +17,12 @@ public class StaffDto {
 
     private String code;
 
-    @NotNull
     private String email;
 
     private Position position;
 
     private String firstName;
 
-    @NotNull(message = "{ERROR_0001}")
     private String lastName;
 
     private String name;

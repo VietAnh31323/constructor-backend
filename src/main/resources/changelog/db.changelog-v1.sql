@@ -578,3 +578,4 @@ CREATE TABLE steel_project_assembly_map
     created_by       VARCHAR,
     updated_by       VARCHAR
 );
+alter table steel add column length numeric

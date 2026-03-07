@@ -54,6 +54,7 @@ public class AccountService implements AccountApi {
     @Override
     @Transactional
     public IdResponse updateAccountInfo(StaffDto input) {
+        System.out.println("input"+ input.getId());
         generateCodeService.generateCode(input, Constants.NS, StaffEntity.class);
         StaffEntity staffEntity = staffRepository.getStaffByUsername(HelperService.getUsernameLogin());
         staffMapper.update(input, staffEntity);

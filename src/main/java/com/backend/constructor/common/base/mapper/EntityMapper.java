@@ -6,6 +6,7 @@ import java.util.List;
 
 public interface EntityMapper<E, D> {
     @BeanMapping(nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS)
+    @Mapping(target = "id", ignore = true)
     E toEntity(D dto);
 
     @BeanMapping(unmappedTargetPolicy = ReportingPolicy.IGNORE)
