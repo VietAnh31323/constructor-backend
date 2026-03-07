@@ -135,7 +135,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         AccountEntity accountEntity = account.get();
         String generateOtp = HelperService.generateOtp();
         final var now = Instant.now();
-        Instant expiresAt = now.plus(5, ChronoUnit.MINUTES);
+        Instant expiresAt = now.plus(90, ChronoUnit.SECONDS);
         PasswordResetEntity passwordResetEntity = PasswordResetEntity.builder()
                 .accountId(accountEntity.getId())
                 .expiresAt(expiresAt)
