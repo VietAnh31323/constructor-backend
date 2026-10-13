@@ -76,6 +76,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Response> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+        log.error("Vi phạm ràng buộc cơ sở dữ liệu: {}", ex.getMessage());
+        ErrorResponse response = new ErrorResponse("Dữ liệu đã tồn tại", null, null);
+        response.addError("ERROR_0002", "Dữ liệu đã tồn tại trong hệ thống (trùng lặp mã hoặc tên đăng nhập)!");
+        return ResponseEntity.badRequest().body(response);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Response> handleUnexpectedException(Exception ex) {
         log.error("Lỗi hệ thống không xác định", ex);

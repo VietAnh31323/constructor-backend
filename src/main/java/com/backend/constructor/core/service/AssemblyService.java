@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AssemblyService implements AssemblyApi {
     private final AssemblyRepository assemblyRepository;
     private final GenerateCodeService generateCodeService;
+    private final com.backend.constructor.common.validator.UniqueValidationService uniqueValidationService;
 
     @Override
     @Transactional
@@ -28,6 +29,7 @@ public class AssemblyService implements AssemblyApi {
                 .code(input.getCode())
                 .name(input.getName())
                 .build();
+        uniqueValidationService.validate(assemblyEntity);
         assemblyRepository.save(assemblyEntity);
         return IdResponse.builder().id(assemblyEntity.getId()).build();
     }
@@ -39,6 +41,7 @@ public class AssemblyService implements AssemblyApi {
         AssemblyEntity assemblyEntity = assemblyRepository.getAssemblyById(input.getId());
         assemblyEntity.setCode(input.getCode());
         assemblyEntity.setName(input.getName());
+        uniqueValidationService.validate(assemblyEntity);
         assemblyRepository.save(assemblyEntity);
         return IdResponse.builder().id(assemblyEntity.getId()).build();
     }

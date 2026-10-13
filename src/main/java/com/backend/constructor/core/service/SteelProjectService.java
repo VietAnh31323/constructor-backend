@@ -30,12 +30,14 @@ public class SteelProjectService implements SteelProjectApi {
     private final SteelProjectMapper steelProjectMapper;
     private final GenerateCodeService generateCodeService;
     private final SteelProjectAssemblyMapRepository steelProjectAssemblyMapRepository;
+    private final com.backend.constructor.common.validator.UniqueValidationService uniqueValidationService;
 
     @Override
     @Transactional
     public IdResponse create(SteelProjectDto input) {
         generateCodeService.generateCode(input, Constants.DATKT, SteelProjectEntity.class);
         SteelProjectEntity steelProject = steelProjectMapper.toEntity(input);
+        uniqueValidationService.validate(steelProject);
         steelProjectRepository.save(steelProject);
         saveSteelProjectAssemblyMaps(input.getSteelProjectAssemblyMaps(), steelProject.getId());
         return IdResponse.builder().id(steelProject.getId()).build();
@@ -47,6 +49,7 @@ public class SteelProjectService implements SteelProjectApi {
         SteelProjectEntity steelProject = steelProjectRepository.getSteelProjectById(input.getId());
         generateCodeService.generateCode(input, Constants.DATKT, SteelProjectEntity.class);
         steelProjectMapper.update(input, steelProject);
+        uniqueValidationService.validate(steelProject);
         steelProjectRepository.save(steelProject);
         clearSteelProjectAssemblyMaps(steelProject.getId());
         saveSteelProjectAssemblyMaps(input.getSteelProjectAssemblyMaps(), steelProject.getId());

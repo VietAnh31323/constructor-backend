@@ -20,6 +20,7 @@ public class AccountEntity extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @com.backend.constructor.common.validator.Unique(err = "CST014")
     private String username;
 
     private String password;

@@ -23,6 +23,7 @@ public class StaffEntity extends BaseEntity {
     @Unique(err = "ERROR_0005")
     private String code;
 
+    @Unique(err = "CST014")
     private String email;
 
     @Enumerated(EnumType.STRING)

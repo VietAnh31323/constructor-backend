@@ -8,3 +8,9 @@ databaseChangeLog:
   - include:
       file: v1.0.0/03-init-steel-production.sql
       relativeToChangelogFile: true
+  - include:
+      file: v1.0.1/01-add-foreign-keys-and-indexes.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v1.0.2/01-add-unique-constraints.sql
+      relativeToChangelogFile: true
