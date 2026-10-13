@@ -73,7 +73,9 @@ public abstract class JpaRepositoryAdapter<T extends BaseEntity> implements Base
      */
     @Override
     public void delete(@NonNull T entity) {
-        this.jpaRepository.delete(entity);
+        entity.setDeletedAt(java.time.Instant.now());
+        entity.setDeletedBy(com.backend.constructor.user.security.SecurityUtils.getCurrentUserLogin().orElse("system"));
+        this.jpaRepository.save(entity);
     }
 
     /**
@@ -82,7 +84,13 @@ public abstract class JpaRepositoryAdapter<T extends BaseEntity> implements Base
      */
     @Override
     public void deleteAll(@NonNull Iterable<? extends T> entities) {
-        this.jpaRepository.deleteAll(entities);
+        java.time.Instant now = java.time.Instant.now();
+        String username = com.backend.constructor.user.security.SecurityUtils.getCurrentUserLogin().orElse("system");
+        for (T entity : entities) {
+            entity.setDeletedAt(now);
+            entity.setDeletedBy(username);
+        }
+        this.jpaRepository.saveAll(entities);
     }
 
     /**
@@ -91,7 +99,8 @@ public abstract class JpaRepositoryAdapter<T extends BaseEntity> implements Base
      */
     @Override
     public void deleteAll() {
-        this.jpaRepository.deleteAll();
+        List<T> all = this.jpaRepository.findAll();
+        deleteAll(all);
     }
 
     /**

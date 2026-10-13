@@ -50,6 +50,11 @@ public class UniqueValidationService {
 
         List<Predicate> predicates = buildPredicates(cb, root, fields, ignoreCase);
 
+        // Loại trừ các bản ghi đã xóa mềm (soft deleted)
+        if (entity instanceof BaseEntity) {
+            predicates.add(cb.isNull(root.get("deletedAt")));
+        }
+
         // Xử lý logic Update: loại trừ bản ghi hiện tại
         if (entity instanceof BaseEntity base && base.getId() != null) {
             predicates.add(cb.notEqual(root.get("id"), base.getId()));

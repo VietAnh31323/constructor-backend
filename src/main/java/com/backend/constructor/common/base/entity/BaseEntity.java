@@ -18,7 +18,8 @@ import java.time.Instant;
 @Setter
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
-@JsonIgnoreProperties(value = {"createdAt", "updatedAt", "createdBy", "updatedBy"}, allowGetters = true)
+@org.hibernate.annotations.SQLRestriction("deleted_at IS NULL")
+@JsonIgnoreProperties(value = {"createdAt", "updatedAt", "createdBy", "updatedBy", "deletedAt", "deletedBy"}, allowGetters = true)
 public abstract class BaseEntity implements EntityID<Long>, Serializable {
     @CreatedBy
     private String createdBy;
@@ -31,4 +32,12 @@ public abstract class BaseEntity implements EntityID<Long>, Serializable {
 
     @LastModifiedBy
     private String updatedBy;
+
+    private Instant deletedAt;
+
+    private String deletedBy;
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
 }

@@ -14,3 +14,6 @@ databaseChangeLog:
   - include:
       file: v1.0.2/01-add-unique-constraints.sql
       relativeToChangelogFile: true
+  - include:
+      file: v1.0.3/01-add-soft-delete-columns.sql
+      relativeToChangelogFile: true

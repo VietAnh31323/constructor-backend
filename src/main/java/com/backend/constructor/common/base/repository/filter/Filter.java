@@ -855,22 +855,15 @@ public class Filter<T> {
         private StringBuilder buildingWhereClause() {
             StringBuilder whereClause = new StringBuilder();
 
-            if (search.isEmpty() && filter.isEmpty()) {
-                return whereClause;
-            }
-
-            whereClause.append(" where ");
+            whereClause.append(" where e.deletedAt is null");
 
             if (!search.isEmpty()) {
-                whereClause.append("(")
-                        .append(search.delete(0, 4))
+                whereClause.append(" and (")
+                        .append(search.substring(4))
                         .append(")");
             }
 
             if (!filter.isEmpty()) {
-                if (search.isEmpty()) {
-                    filter.delete(0, 4);
-                }
                 whereClause.append(filter);
             }
 
