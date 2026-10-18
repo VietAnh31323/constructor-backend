@@ -34,10 +34,13 @@ public class ProjectEntity extends BaseEntity {
 
     private String address;
 
+    @Column(name = "contract_value", precision = 18, scale = 2)
     private BigDecimal contractValue;
 
+    @Column(name = "contract_advance", precision = 18, scale = 2)
     private BigDecimal contractAdvance;
 
+    @Column(name = "remaining_amount", precision = 18, scale = 2)
     private BigDecimal remainingAmount;
 
     private LocalDate signDate;

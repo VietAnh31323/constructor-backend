@@ -1,8 +1,15 @@
 server:
   port: 8078
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+      enabled: true
 spring:
   application:
     name: constructor
+  messages:
+    encoding: UTF-8
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:postgresql://${POSTGRESQL_HOST:localhost}:${POSTGRESQL_PORT:5432}/${POSTGRESQL_DATABASE:postgres}?currentSchema=constructor

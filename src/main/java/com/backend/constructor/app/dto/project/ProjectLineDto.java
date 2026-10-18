@@ -1,5 +1,7 @@
 package com.backend.constructor.app.dto.project;
 
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -21,5 +23,7 @@ public class ProjectLineDto {
     private Long paymentNo;
 
     @NotNull(message = "{ERROR_0001}")
+    @Min(0)
+    @Digits(integer = 16, fraction = 2)
     private BigDecimal paymentAmount;
 }

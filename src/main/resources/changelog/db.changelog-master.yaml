@@ -17,3 +17,7 @@ databaseChangeLog:
   - include:
       file: v1.0.3/01-add-soft-delete-columns.sql
       relativeToChangelogFile: true
+  - include:
+      file: v1.0.4/01-standardize-monetary-data-types.sql
+      relativeToChangelogFile: true
+

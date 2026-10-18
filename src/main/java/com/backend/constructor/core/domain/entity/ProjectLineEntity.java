@@ -26,5 +26,6 @@ public class ProjectLineEntity extends BaseEntity {
 
     private Long paymentNo;
 
+    @Column(name = "payment_amount", precision = 18, scale = 2)
     private BigDecimal paymentAmount;
 }

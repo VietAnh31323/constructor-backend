@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 import static com.backend.constructor.core.service.HelperService.addIfNotNull;
@@ -48,6 +49,12 @@ public class ProjectService implements ProjectApi {
         input.trimData();
         generateCodeService.generateCode(input, Constants.DA, ProjectEntity.class);
         ProjectEntity projectEntity = projectMapper.toEntity(input);
+        if (projectEntity.getContractValue() != null) {
+            projectEntity.setContractValue(projectEntity.getContractValue().setScale(2, RoundingMode.HALF_UP));
+        }
+        if (projectEntity.getContractAdvance() != null) {
+            projectEntity.setContractAdvance(projectEntity.getContractAdvance().setScale(2, RoundingMode.HALF_UP));
+        }
         projectEntity.setRemainingAmount(calculateRemainingAmount(input.getContractValue(), input.getContractAdvance()));
         projectEntity.setState(ProjectState.NOT_STARTED);
         uniqueValidationService.validate(projectEntity);
@@ -64,6 +71,13 @@ public class ProjectService implements ProjectApi {
         ProjectEntity projectEntity = projectRepository.getProjectById(input.getId());
         input.trimData();
         projectMapper.update(input, projectEntity);
+        if (projectEntity.getContractValue() != null) {
+            projectEntity.setContractValue(projectEntity.getContractValue().setScale(2, RoundingMode.HALF_UP));
+        }
+        if (projectEntity.getContractAdvance() != null) {
+            projectEntity.setContractAdvance(projectEntity.getContractAdvance().setScale(2, RoundingMode.HALF_UP));
+        }
+        projectEntity.setRemainingAmount(calculateRemainingAmount(projectEntity.getContractValue(), projectEntity.getContractAdvance()));
         uniqueValidationService.validate(projectEntity);
         projectRepository.save(projectEntity);
         deleteAllRelations(projectEntity);
@@ -116,6 +130,9 @@ public class ProjectService implements ProjectApi {
         List<ProjectLineEntity> projectLineEntities = new ArrayList<>();
         for (ProjectLineDto projectLineDto : projectLines) {
             ProjectLineEntity entity = projectLineMapper.toEntity(projectLineDto);
+            if (entity.getPaymentAmount() != null) {
+                entity.setPaymentAmount(entity.getPaymentAmount().setScale(2, RoundingMode.HALF_UP));
+            }
             entity.setProjectId(projectEntity.getId());
             projectLineEntities.add(entity);
         }
@@ -189,7 +206,8 @@ public class ProjectService implements ProjectApi {
 
     private BigDecimal calculateRemainingAmount(BigDecimal contractValue,
                                                 BigDecimal contractAdvance) {
-        if (contractAdvance == null) contractAdvance = BigDecimal.ZERO;
-        return contractValue.subtract(contractAdvance);
+        BigDecimal value = contractValue != null ? contractValue : BigDecimal.ZERO;
+        BigDecimal advance = contractAdvance != null ? contractAdvance : BigDecimal.ZERO;
+        return value.subtract(advance).setScale(2, RoundingMode.HALF_UP);
     }
 }
