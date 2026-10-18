@@ -47,54 +47,21 @@ public class SecurityConfiguration {
 
     final RsaKeyProperties rsaKeyProperties;
 
+    private static final String[] PUBLIC_WHITELIST = {
+            "/sign-in",
+            "/sign-up",
+            "/password/**",
+            "/public/**",
+            "/v3/api-docs/**",
+            "/v3/api-docs",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/swagger-resources/**",
+            "/webjars/**"
+    };
+
     @Bean
     @Order(1)
-    public SecurityFilterChain publicApiSecurityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .securityMatchers(matchers -> matchers
-                        .requestMatchers(
-                                "/public/**",
-                                "/sign-up",
-                                "/sign-in",
-                                "/password/forgot",
-                                "/password/verify-otp",
-                                "/password/reset"
-                        )
-                )
-                .cors(withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-
-        return http.build();
-    }
-
-
-    @Bean
-    @Order(2)
-    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity, TokenProvider tokenProvider) throws Exception {
-        return httpSecurity
-                .securityMatchers(matchers -> matchers
-                        .requestMatchers(
-                                "/api/v1/**"
-                        )
-                )
-                .cors(withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(new JwtAccessTokenFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling(ex -> {
-                    ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
-                    ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
-                })
-                .httpBasic(withDefaults())
-                .build();
-    }
-
-    @Bean
-    @Order(3)
     public SecurityFilterChain refreshTokenSecurityFilterChain(HttpSecurity httpSecurity, TokenProvider tokenProvider) throws Exception {
         return httpSecurity
                 .securityMatchers(matchers -> matchers.requestMatchers("/refresh-token/**"))
@@ -112,7 +79,7 @@ public class SecurityConfiguration {
                 .build();
     }
 
-    @Order(4)
+    @Order(2)
     @Bean
     public SecurityFilterChain logoutSecurityFilterChain(HttpSecurity httpSecurity, LogoutServiceImpl logoutService, TokenProvider tokenProvider) throws Exception {
         return httpSecurity
@@ -132,6 +99,27 @@ public class SecurityConfiguration {
                     ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
                     ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
                 })
+                .build();
+    }
+
+    @Bean
+    @Order(3)
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity, TokenProvider tokenProvider) throws Exception {
+        return httpSecurity
+                .cors(withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(PUBLIC_WHITELIST).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(new JwtAccessTokenFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(ex -> {
+                    ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
+                    ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
+                })
+                .httpBasic(withDefaults())
                 .build();
     }
 
