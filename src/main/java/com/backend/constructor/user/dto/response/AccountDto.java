@@ -20,4 +20,6 @@ public class AccountDto {
     String refreshToken;
     Instant refreshTokenExpiry;
     String authScheme;
+    java.util.List<String> roles;
+    java.util.Set<String> permissions;
 }

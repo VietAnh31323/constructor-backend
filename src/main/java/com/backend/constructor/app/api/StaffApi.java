@@ -9,19 +9,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 public interface StaffApi {
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER_MANAGE', 'SCOPE_ADMIN')")
     IdResponse create(StaffDto input);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER_MANAGE', 'SCOPE_ADMIN')")
     IdResponse update(StaffDto input);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER_MANAGE', 'SCOPE_ADMIN')")
     IdResponse delete(Long id);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER_VIEW', 'USER_MANAGE', 'SCOPE_ADMIN')")
     StaffDto getDetail(Long id);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER_VIEW', 'USER_MANAGE', 'SCOPE_ADMIN')")
     Page<StaffOutput> getListStaff(StaffFilterParam param,
                                    Pageable pageable);
 }

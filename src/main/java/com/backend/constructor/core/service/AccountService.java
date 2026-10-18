@@ -2,7 +2,9 @@ package com.backend.constructor.core.service;
 
 import com.backend.constructor.app.api.AccountApi;
 import com.backend.constructor.app.dto.account.AccountStaffDto;
+import com.backend.constructor.app.dto.account.PermissionDto;
 import com.backend.constructor.app.dto.account.RoleDto;
+import java.util.Set;
 import com.backend.constructor.app.dto.staff.AssignStaffDto;
 import com.backend.constructor.app.dto.staff.StaffDto;
 import com.backend.constructor.common.base.dto.response.IdResponse;
@@ -43,6 +45,7 @@ public class AccountService implements AccountApi {
     private final AccountMapper accountMapper;
     private final RoleRepository roleRepository;
     private final AccountRoleMapRepository accountRoleMapRepository;
+    private final PermissionRepository permissionRepository;
     private final GenerateCodeService generateCodeService;
 
     @Override
@@ -145,6 +148,26 @@ public class AccountService implements AccountApi {
                         .id(r.getId())
                         .name(r.getName())
                         .description(r.getDescription() != null ? r.getDescription() : (r.getName() != null ? r.getName().getValue() : null))
+                        .build())
+                .toList();
+    }
+
+    @Override
+    public Set<String> getCurrentUserPermissions() {
+        String username = HelperService.getUsernameLogin();
+        AccountEntity account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> BusinessException.exception("CST002"));
+        return permissionRepository.getPermissionNamesByAccountId(account.getId());
+    }
+
+    @Override
+    public List<com.backend.constructor.app.dto.account.PermissionDto> getAllPermissions() {
+        return permissionRepository.getAllPermissions().stream()
+                .map(p -> com.backend.constructor.app.dto.account.PermissionDto.builder()
+                        .id(p.getId())
+                        .name(p.getName())
+                        .description(p.getDescription())
+                        .module(p.getModule())
                         .build())
                 .toList();
     }

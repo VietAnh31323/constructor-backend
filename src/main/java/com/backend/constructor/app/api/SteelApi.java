@@ -8,18 +8,18 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 
 public interface SteelApi {
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MATERIAL_MANAGE', 'SCOPE_ADMIN')")
     IdResponse create(SteelDto input);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MATERIAL_MANAGE', 'SCOPE_ADMIN')")
     IdResponse update(SteelDto input);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MATERIAL_MANAGE', 'SCOPE_ADMIN')")
     void delete(Long id);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MATERIAL_VIEW', 'MATERIAL_MANAGE', 'SCOPE_ADMIN')")
     SteelDto getDetail(Long id);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MATERIAL_VIEW', 'MATERIAL_MANAGE', 'SCOPE_ADMIN')")
     List<SteelOutput> getListSteelByAssemblyId(Long assemblyId);
 }

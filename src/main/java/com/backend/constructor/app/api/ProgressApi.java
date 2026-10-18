@@ -8,19 +8,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 public interface ProgressApi {
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PROGRESS_UPDATE', 'PROJECT_UPDATE', 'SCOPE_ADMIN')")
     IdResponse create(ProgressDto input);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PROGRESS_UPDATE', 'PROJECT_UPDATE', 'SCOPE_ADMIN')")
     IdResponse update(ProgressDto input);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_DELETE', 'SCOPE_ADMIN')")
     IdResponse delete(Long id);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PROGRESS_VIEW', 'PROJECT_VIEW', 'SCOPE_ADMIN')")
     ProgressDto getDetail(Long id);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PROGRESS_VIEW', 'PROJECT_VIEW', 'SCOPE_ADMIN')")
     Page<ProgressDto> getListStaff(ProgressFilterParam param,
                                    Pageable pageable);
 }

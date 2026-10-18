@@ -28,10 +28,7 @@ import org.springframework.util.StringUtils;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -43,11 +40,12 @@ public class TokenProvider {
     private final RsaKeyProperties rsaKeyProperties;
     private final TokenRepository tokenRepository;
     private final AccountRepository accountRepository;
+    private final RoleRepository roleRepository;
+    private final com.backend.constructor.core.port.repository.PermissionRepository permissionRepository;
 
     private static final String AUTHORITIES_KEY = "scope";
     private static final String INVALID_JWT_TOKEN = "Invalid JWT token.";
     private static final String PREFIX_AUTHORIZE = "ROLE_";
-    private final RoleRepository roleRepository;
 
     public Jwt createToken(Authentication authentication) {
         log.info("[TokenProvider:createToken] Token Creation Started for:{}", authentication.getName());
@@ -148,9 +146,17 @@ public class TokenProvider {
 
             Collection<? extends GrantedAuthority> authorities = Arrays.stream(
                             jwt.getClaimAsString(AUTHORITIES_KEY).split(","))
-                    .filter(auth -> !auth.trim().isEmpty())
-                    .map(auth -> auth.startsWith(PREFIX_AUTHORIZE) ? auth : PREFIX_AUTHORIZE + auth)
-                    .map(SimpleGrantedAuthority::new)
+                    .map(String::trim)
+                    .filter(auth -> !auth.isEmpty())
+                    .flatMap(auth -> {
+                        List<GrantedAuthority> list = new ArrayList<>();
+                        list.add(new SimpleGrantedAuthority(auth));
+                        list.add(new SimpleGrantedAuthority("SCOPE_" + auth));
+                        if (!auth.startsWith(PREFIX_AUTHORIZE)) {
+                            list.add(new SimpleGrantedAuthority(PREFIX_AUTHORIZE + auth));
+                        }
+                        return list.stream();
+                    })
                     .toList();
 
             User principal = new User(jwt.getSubject(), "", authorities);
@@ -162,16 +168,22 @@ public class TokenProvider {
     }
 
     public Authentication getAuthentication(final AccountEntity account) {
-        // Extract user details from UserDetailsEntity
         String username = account.getUsername();
         String password = account.getPassword();
         List<RoleEntity> roleEntities = roleRepository.getListRoleByAccountId(account.getId());
-        final var authorities = roleEntities.stream()
-                .map(RoleEntity::getName)
-                .map(Enum::name)
-                .map(s -> s.startsWith(PREFIX_AUTHORIZE) ? s : PREFIX_AUTHORIZE + s)
-                .map(SimpleGrantedAuthority::new)
-                .toList();
+        Set<String> permissionNames = permissionRepository.getPermissionNamesByAccountId(account.getId());
+
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        for (RoleEntity role : roleEntities) {
+            if (role.getName() != null) {
+                String roleName = role.getName().name();
+                authorities.add(new SimpleGrantedAuthority(roleName));
+                authorities.add(new SimpleGrantedAuthority(PREFIX_AUTHORIZE + roleName));
+            }
+        }
+        for (String perm : permissionNames) {
+            authorities.add(new SimpleGrantedAuthority(perm));
+        }
 
         return new UsernamePasswordAuthenticationToken(username, password, authorities);
     }
@@ -189,11 +201,19 @@ public class TokenProvider {
 
     private User createSpringSecurityUser(AccountEntity account) {
         List<RoleEntity> roleEntities = roleRepository.getListRoleByAccountId(account.getId());
-        final var grantedAuthorities = roleEntities.stream()
-                .map(RoleEntity::getName)
-                .map(Enum::name)
-                .map(SimpleGrantedAuthority::new)
-                .toList();
+        Set<String> permissionNames = permissionRepository.getPermissionNamesByAccountId(account.getId());
+
+        List<SimpleGrantedAuthority> grantedAuthorities = new ArrayList<>();
+        for (RoleEntity role : roleEntities) {
+            if (role.getName() != null) {
+                String roleName = role.getName().name();
+                grantedAuthorities.add(new SimpleGrantedAuthority(roleName));
+                grantedAuthorities.add(new SimpleGrantedAuthority(PREFIX_AUTHORIZE + roleName));
+            }
+        }
+        for (String perm : permissionNames) {
+            grantedAuthorities.add(new SimpleGrantedAuthority(perm));
+        }
         return new User(account.getUsername(), account.getPassword(), grantedAuthorities);
     }
 }

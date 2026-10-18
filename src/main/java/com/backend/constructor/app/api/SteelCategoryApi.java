@@ -12,22 +12,22 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 
 public interface SteelCategoryApi {
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MATERIAL_MANAGE', 'SCOPE_ADMIN')")
     IdResponse create(SteelCategoryDto input);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MATERIAL_MANAGE', 'SCOPE_ADMIN')")
     IdResponse update(SteelCategoryDto input);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MATERIAL_MANAGE', 'SCOPE_ADMIN')")
     void delete(Long id);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MATERIAL_VIEW', 'MATERIAL_MANAGE', 'SCOPE_ADMIN')")
     SteelCategoryDto getDetail(Long id);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MATERIAL_VIEW', 'MATERIAL_MANAGE', 'SCOPE_ADMIN')")
     Page<SteelCategoryOutput> getListSteelCategory(SteelCategoryFilterParam param,
                                                    Pageable pageable);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('MATERIAL_VIEW', 'MATERIAL_MANAGE', 'SCOPE_ADMIN')")
     List<SteelCategoryLineDto> getListSteelCategoryLine(Long steelCategoryId);
 }

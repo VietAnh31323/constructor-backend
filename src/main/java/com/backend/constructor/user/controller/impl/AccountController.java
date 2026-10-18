@@ -8,6 +8,7 @@ import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.common.base.response.Message;
 import com.backend.constructor.common.base.response.paging.HandsomePaging;
 import com.backend.constructor.common.enums.AccountStatus;
+import com.backend.constructor.app.dto.account.PermissionDto;
 import com.backend.constructor.app.dto.account.RoleDto;
 import com.backend.constructor.user.dto.request.ChangePasswordDto;
 import jakarta.validation.Valid;
@@ -20,6 +21,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @RestController
@@ -57,7 +59,7 @@ public class AccountController implements AccountApi {
 
     @Override
     @GetMapping("/list")
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER_VIEW', 'USER_MANAGE', 'SCOPE_ADMIN')")
     @HandsomePaging
     public Page<AccountStaffDto> getPageAccount(@RequestParam(required = false) String search,
                                                 @RequestParam(required = false) AccountStatus accountStatus,
@@ -67,14 +69,14 @@ public class AccountController implements AccountApi {
 
     @Override
     @GetMapping("/staff")
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER_VIEW', 'USER_MANAGE', 'SCOPE_ADMIN')")
     public AccountStaffDto getDetailStaffByAccountId(@RequestParam Long accountId) {
         return accountService.getDetailStaffByAccountId(accountId);
     }
 
     @Override
     @PutMapping("/role")
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER_MANAGE', 'SCOPE_ADMIN')")
     public IdResponse updateRoleOfAccount(@RequestBody @Valid AccountStaffDto accountStaffDto) {
         return accountService.updateRoleOfAccount(accountStaffDto);
     }
@@ -83,5 +85,18 @@ public class AccountController implements AccountApi {
     @GetMapping("/roles")
     public List<RoleDto> getAllRoles() {
         return accountService.getAllRoles();
+    }
+
+    @Override
+    @GetMapping("/permissions")
+    public Set<String> getCurrentUserPermissions() {
+        return accountService.getCurrentUserPermissions();
+    }
+
+    @Override
+    @GetMapping("/all-permissions")
+    @PreAuthorize("hasAnyAuthority('USER_MANAGE', 'SCOPE_ADMIN')")
+    public List<PermissionDto> getAllPermissions() {
+        return accountService.getAllPermissions();
     }
 }

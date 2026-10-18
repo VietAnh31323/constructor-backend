@@ -3,6 +3,7 @@ package com.backend.constructor.user.security;
 import com.backend.constructor.core.domain.entity.AccountEntity;
 import com.backend.constructor.core.domain.entity.RoleEntity;
 import com.backend.constructor.core.port.repository.AccountRepository;
+import com.backend.constructor.core.port.repository.PermissionRepository;
 import com.backend.constructor.core.port.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +16,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Authenticate a user from the database.
@@ -28,6 +31,7 @@ public class DomainUserDetailsService implements UserDetailsService {
 
     private final AccountRepository accountRepository;
     private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -41,19 +45,25 @@ public class DomainUserDetailsService implements UserDetailsService {
         }
         final var lowercaseLogin = username.toLowerCase(Locale.ENGLISH);
         return accountRepository
-                .findByUsername(lowercaseLogin)
-                .map(this::createSpringSecurityUser)
-                .orElseThrow(() -> new UsernameNotFoundException("User " + lowercaseLogin + " was not found in the database"));
+                    .findByUsername(lowercaseLogin)
+                    .map(this::createSpringSecurityUser)
+                    .orElseThrow(() -> new UsernameNotFoundException("User " + lowercaseLogin + " was not found in the database"));
     }
 
     private User createSpringSecurityUser(AccountEntity account) {
         List<RoleEntity> roleEntities = roleRepository.getListRoleByAccountId(account.getId());
-        final var grantedAuthorities = roleEntities
-                .stream()
-                .map(RoleEntity::getName)
-                .map(Enum::name)
-                .map(SimpleGrantedAuthority::new)
-                .toList();
+        Set<String> permissionNames = permissionRepository.getPermissionNamesByAccountId(account.getId());
+
+        List<SimpleGrantedAuthority> grantedAuthorities = new ArrayList<>();
+        for (RoleEntity role : roleEntities) {
+            if (role.getName() != null) {
+                grantedAuthorities.add(new SimpleGrantedAuthority(role.getName().name()));
+            }
+        }
+        for (String perm : permissionNames) {
+            grantedAuthorities.add(new SimpleGrantedAuthority(perm));
+        }
+
         return new User(account.getUsername(), account.getPassword(), grantedAuthorities);
     }
 }

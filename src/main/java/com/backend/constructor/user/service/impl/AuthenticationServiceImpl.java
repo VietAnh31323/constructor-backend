@@ -19,6 +19,7 @@ import com.backend.constructor.user.service.AuthenticationService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -55,6 +56,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     AccountRepository accountRepository;
     RoleRepository roleRepository;
     TokenRepository tokenRepository;
+    PermissionRepository permissionRepository;
 
     //Mapper
     AccountMapper accountMapper;
@@ -194,6 +196,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         AccountDto dto = accountMapper.toDto(jwtAccessToken, jwtRefreshToken);
         dto.setUserId(account.getId());
+        List<RoleEntity> roleEntities = roleRepository.getListRoleByAccountId(account.getId());
+        dto.setRoles(roleEntities.stream().map(r -> r.getName() != null ? r.getName().name() : null).filter(java.util.Objects::nonNull).toList());
+        dto.setPermissions(permissionRepository.getPermissionNamesByAccountId(account.getId()));
         return dto;
     }
 

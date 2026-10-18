@@ -23,4 +23,7 @@ databaseChangeLog:
   - include:
       file: v1.0.5/01-seed-construction-roles.sql
       relativeToChangelogFile: true
+  - include:
+      file: v1.0.6/01-create-permission-and-role-permission-map.sql
+      relativeToChangelogFile: true
 
