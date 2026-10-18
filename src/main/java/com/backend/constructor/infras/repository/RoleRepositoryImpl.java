@@ -44,6 +44,7 @@ public class RoleRepositoryImpl extends JpaRepositoryAdapter<RoleEntity> impleme
         Filter<RoleEntity> filter = Filter.builder()
                 .select(RoleEntity_.ID)
                 .select(RoleEntity_.NAME)
+                .select(RoleEntity_.DESCRIPTION)
                 .filter()
                 .leftJoin(RoleEntity_.ID, new FilterJoiner(AccountRoleMapEntity.class, AccountRoleMapEntity_.ROLE_ID))
                 .select(AccountRoleMapEntity_.ACCOUNT_ID)
@@ -57,8 +58,14 @@ public class RoleRepositoryImpl extends JpaRepositoryAdapter<RoleEntity> impleme
                     .add(RoleDto.builder()
                             .id(roleEntity.getId())
                             .name(roleEntity.getName())
+                            .description(roleEntity.getDescription() != null ? roleEntity.getDescription() : (roleEntity.getName() != null ? roleEntity.getName().getValue() : null))
                             .build());
         }
         return map;
+    }
+
+    @Override
+    public List<RoleEntity> getAllRoles() {
+        return roleJpaRepository.findAll();
     }
 }

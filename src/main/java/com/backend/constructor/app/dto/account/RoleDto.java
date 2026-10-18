@@ -11,4 +11,5 @@ import lombok.Data;
 public class RoleDto {
     private Long id;
     private ERole name;
+    private String description;
 }

@@ -8,6 +8,7 @@ import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.common.base.response.Message;
 import com.backend.constructor.common.base.response.paging.HandsomePaging;
 import com.backend.constructor.common.enums.AccountStatus;
+import com.backend.constructor.app.dto.account.RoleDto;
 import com.backend.constructor.user.dto.request.ChangePasswordDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -74,5 +77,11 @@ public class AccountController implements AccountApi {
     @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
     public IdResponse updateRoleOfAccount(@RequestBody @Valid AccountStaffDto accountStaffDto) {
         return accountService.updateRoleOfAccount(accountStaffDto);
+    }
+
+    @Override
+    @GetMapping("/roles")
+    public List<RoleDto> getAllRoles() {
+        return accountService.getAllRoles();
     }
 }

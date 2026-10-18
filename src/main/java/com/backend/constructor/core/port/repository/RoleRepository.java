@@ -18,4 +18,6 @@ public interface RoleRepository extends BaseRepository<RoleEntity> {
     Optional<RoleEntity> getByName(ERole eRole);
 
     Map<Long, List<RoleDto>> getMapRoleDtoByAccountIds(Set<Long> accountIds);
+
+    List<RoleEntity> getAllRoles();
 }

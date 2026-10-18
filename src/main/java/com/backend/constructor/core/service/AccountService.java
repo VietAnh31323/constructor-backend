@@ -138,6 +138,17 @@ public class AccountService implements AccountApi {
         return IdResponse.builder().id(accountEntity.getId()).build();
     }
 
+    @Override
+    public List<RoleDto> getAllRoles() {
+        return roleRepository.getAllRoles().stream()
+                .map(r -> RoleDto.builder()
+                        .id(r.getId())
+                        .name(r.getName())
+                        .description(r.getDescription() != null ? r.getDescription() : (r.getName() != null ? r.getName().getValue() : null))
+                        .build())
+                .toList();
+    }
+
     private Map<Long, StaffDto> getMapStaffByAccountId(List<StaffEntity> staffEntities) {
         Map<Long, StaffDto> map = new HashMap<>();
         for (StaffEntity staffEntity : staffEntities) {

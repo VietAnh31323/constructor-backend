@@ -30,12 +30,22 @@ public class AccountInit implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        log.info("Init roles");
+        for (ERole eRole : ERole.values()) {
+            if (roleRepository.getByName(eRole).isEmpty()) {
+                roleRepository.save(RoleEntity.builder()
+                        .name(eRole)
+                        .description(eRole.getValue())
+                        .build());
+            }
+        }
+
         log.info("Init admin");
         RoleEntity roleEntity = roleRepository.getByName(ERole.ADMIN)
                 .orElseGet(() -> {
                     RoleEntity adminRoleEntity = RoleEntity.builder()
                             .name(ERole.ADMIN)
-                            .description("Admin")
+                            .description(ERole.ADMIN.getValue())
                             .build();
                     return roleRepository.save(adminRoleEntity);
                 });
