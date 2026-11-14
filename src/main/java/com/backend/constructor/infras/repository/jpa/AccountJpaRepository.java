@@ -7,6 +7,7 @@ import com.backend.constructor.core.domain.entity.AccountEntity;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -27,4 +28,16 @@ public interface AccountJpaRepository extends BaseJpaRepository<AccountEntity> {
     Optional<AccountEntity> findByUsername(String username);
 
     Optional<AccountEntity> findByUsernameAndStatus(String username, AccountStatus status);
+
+    @Query("""
+                SELECT a
+                FROM AccountEntity a
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM AccountStaffMapEntity asm
+                    WHERE asm.accountId = a.id
+                )
+                ORDER BY a.id DESC
+            """)
+    List<AccountEntity> findAllUnassignedAccounts();
 }

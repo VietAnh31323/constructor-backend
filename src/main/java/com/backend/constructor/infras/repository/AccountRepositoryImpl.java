@@ -17,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -76,5 +77,10 @@ public class AccountRepositoryImpl extends JpaRepositoryAdapter<AccountEntity> i
                 .pageable(pageable)
                 .build(AccountEntity.class);
         return filter.getPage();
+    }
+
+    @Override
+    public List<AccountEntity> getUnassignedAccounts() {
+        return accountJpaRepository.findAllUnassignedAccounts();
     }
 }

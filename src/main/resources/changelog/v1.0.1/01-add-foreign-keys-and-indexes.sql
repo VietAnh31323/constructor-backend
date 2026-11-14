@@ -6,11 +6,31 @@
 -- Module: Database (Task ID 1.02)
 -- ============================================================================
 
---changeset constructor:v1.0.1-01-add-foreign-keys-project
+--changeset constructor:v1.0.1-01-add-foreign-keys-project splitStatements:false
 DO $$
 BEGIN
+    -- Làm sạch các khóa ngoại mồ côi từ dữ liệu cũ trước khi gắn ràng buộc FK
+    UPDATE project
+    SET creator_id = NULL
+    WHERE creator_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM staff s WHERE s.id = project.creator_id);
+
+    UPDATE project
+    SET manager_id = NULL
+    WHERE manager_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM staff s WHERE s.id = project.manager_id);
+
+    UPDATE project
+    SET supporter_id = NULL
+    WHERE supporter_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM staff s WHERE s.id = project.supporter_id);
+
     -- FK project.creator_id -> staff(id)
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_project_creator') THEN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_project_creator'
+          AND connamespace = current_schema()::regnamespace
+    ) THEN
         ALTER TABLE project
             ADD CONSTRAINT fk_project_creator
             FOREIGN KEY (creator_id) REFERENCES staff (id)
@@ -18,7 +38,11 @@ BEGIN
     END IF;
 
     -- FK project.manager_id -> staff(id)
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_project_manager') THEN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_project_manager'
+          AND connamespace = current_schema()::regnamespace
+    ) THEN
         ALTER TABLE project
             ADD CONSTRAINT fk_project_manager
             FOREIGN KEY (manager_id) REFERENCES staff (id)
@@ -26,7 +50,11 @@ BEGIN
     END IF;
 
     -- FK project.supporter_id -> staff(id)
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_project_supporter') THEN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_project_supporter'
+          AND connamespace = current_schema()::regnamespace
+    ) THEN
         ALTER TABLE project
             ADD CONSTRAINT fk_project_supporter
             FOREIGN KEY (supporter_id) REFERENCES staff (id)
@@ -34,11 +62,32 @@ BEGIN
     END IF;
 END $$;
 
---changeset constructor:v1.0.1-02-add-foreign-keys-auth
+--changeset constructor:v1.0.1-02-add-foreign-keys-auth splitStatements:false
 DO $$
 BEGIN
+    -- Làm sạch bản ghi mồ côi từ dữ liệu cũ trước khi gắn ràng buộc FK CASCADE
+    DELETE FROM token t
+    WHERE t.account_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM account a WHERE a.id = t.account_id);
+
+    DELETE FROM password_reset pr
+    WHERE pr.account_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM account a WHERE a.id = pr.account_id);
+
+    DELETE FROM account_role_map arm
+    WHERE arm.account_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM account a WHERE a.id = arm.account_id);
+
+    DELETE FROM account_role_map arm
+    WHERE arm.role_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM role r WHERE r.id = arm.role_id);
+
     -- FK token.account_id -> account(id)
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_token_account') THEN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_token_account'
+          AND connamespace = current_schema()::regnamespace
+    ) THEN
         ALTER TABLE token
             ADD CONSTRAINT fk_token_account
             FOREIGN KEY (account_id) REFERENCES account (id)
@@ -46,7 +95,11 @@ BEGIN
     END IF;
 
     -- FK password_reset.account_id -> account(id)
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_password_reset_account') THEN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_password_reset_account'
+          AND connamespace = current_schema()::regnamespace
+    ) THEN
         ALTER TABLE password_reset
             ADD CONSTRAINT fk_password_reset_account
             FOREIGN KEY (account_id) REFERENCES account (id)
@@ -54,7 +107,11 @@ BEGIN
     END IF;
 
     -- FK account_role_map.account_id -> account(id)
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_account_role_map_account') THEN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_account_role_map_account'
+          AND connamespace = current_schema()::regnamespace
+    ) THEN
         ALTER TABLE account_role_map
             ADD CONSTRAINT fk_account_role_map_account
             FOREIGN KEY (account_id) REFERENCES account (id)
@@ -62,7 +119,11 @@ BEGIN
     END IF;
 
     -- FK account_role_map.role_id -> role(id)
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_account_role_map_role') THEN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_account_role_map_role'
+          AND connamespace = current_schema()::regnamespace
+    ) THEN
         ALTER TABLE account_role_map
             ADD CONSTRAINT fk_account_role_map_role
             FOREIGN KEY (role_id) REFERENCES role (id)

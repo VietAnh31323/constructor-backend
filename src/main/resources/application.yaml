@@ -9,6 +9,8 @@ server:
 spring:
   application:
     name: constructor
+  config:
+    import: optional:file:.env[.properties]
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   messages:

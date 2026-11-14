@@ -20,4 +20,8 @@ public interface TaskRepository extends BaseRepository<TaskEntity> {
     List<TaskEntity> getListTaskByProjectId(Long projectId);
 
     List<TaskEntity> getListTaskByProjectProgressId(Long projectProgressId);
+
+    List<TaskEntity> getListByReviewerId(Long reviewerId);
+
+    List<TaskEntity> getListByReviewerIds(Collection<Long> reviewerIds);
 }

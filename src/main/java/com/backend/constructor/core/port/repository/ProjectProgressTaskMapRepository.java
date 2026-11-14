@@ -10,4 +10,6 @@ import java.util.List;
 @Repository
 public interface ProjectProgressTaskMapRepository extends BaseRepository<ProjectProgressTaskMapEntity> {
     List<ProjectProgressTaskMapEntity> getListByProjectProgressIds(Collection<Long> projectProgressIds);
+
+    List<ProjectProgressTaskMapEntity> getListByTaskIds(Collection<Long> taskIds);
 }

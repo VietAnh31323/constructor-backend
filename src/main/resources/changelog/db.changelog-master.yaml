@@ -32,5 +32,8 @@ databaseChangeLog:
   - include:
       file: v1.0.8/01-create-audit-log.sql
       relativeToChangelogFile: true
+  - include:
+      file: v1.0.9/01-staff-hr-and-certificates.sql
+      relativeToChangelogFile: true
 
 

@@ -37,7 +37,9 @@ public class AccountService implements AccountApi {
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
     private final StaffRepository staffRepository;
+    private final StaffCertificateRepository staffCertificateRepository;
     private final StaffMapper staffMapper;
+    private final com.backend.constructor.core.port.mapper.StaffCertificateMapper staffCertificateMapper;
     private final AccountStaffMapRepository accountStaffMapRepository;
     private final AccountMapper accountMapper;
     private final RoleRepository roleRepository;
@@ -53,7 +55,19 @@ public class AccountService implements AccountApi {
         String username = HelperService.getUsernameLogin();
         Optional<StaffEntity> staffOpt = staffRepository.findOptionalStaffByUsername(username);
         if (staffOpt.isPresent()) {
-            return staffMapper.toDto(staffOpt.get());
+            StaffEntity staff = staffOpt.get();
+            StaffDto dto = staffMapper.toDto(staff);
+            java.time.LocalDate today = java.time.LocalDate.now();
+            dto.setCertificates(
+                    staffCertificateRepository.getListByStaffId(staff.getId()).stream()
+                            .map(cert -> {
+                                var certDto = staffCertificateMapper.toDto(cert);
+                                certDto.computeValidity(today);
+                                return certDto;
+                            })
+                            .toList()
+            );
+            return dto;
         }
         AccountEntity account = accountRepository.findAnyByUsername(username)
                 .orElseThrow(() -> BusinessException.exception("CST000"));
@@ -71,8 +85,17 @@ public class AccountService implements AccountApi {
         String username = HelperService.getUsernameLogin();
         Optional<StaffEntity> staffOpt = staffRepository.findOptionalStaffByUsername(username);
         if (staffOpt.isPresent()) {
-            generateCodeService.generateCode(input, Constants.NS, StaffEntity.class);
             StaffEntity staffEntity = staffOpt.get();
+            if (input.getCode() == null) input.setCode(staffEntity.getCode());
+            if (input.getEmail() == null) input.setEmail(staffEntity.getEmail());
+            if (input.getPosition() == null) input.setPosition(staffEntity.getPosition());
+            if (input.getDepartment() == null) input.setDepartment(staffEntity.getDepartment());
+            if (input.getJoinDate() == null) input.setJoinDate(staffEntity.getJoinDate());
+            if (input.getStatus() == null) input.setStatus(staffEntity.getStatus());
+            if (input.getIdCardNumber() == null) input.setIdCardNumber(staffEntity.getIdCardNumber());
+            if (input.getIdCardIssueDate() == null) input.setIdCardIssueDate(staffEntity.getIdCardIssueDate());
+            if (input.getIdCardIssuePlace() == null) input.setIdCardIssuePlace(staffEntity.getIdCardIssuePlace());
+            generateCodeService.generateCode(input, Constants.NS, StaffEntity.class);
             staffMapper.update(input, staffEntity);
             staffEntity.setName(joinName(input.getFirstName(), input.getLastName()));
             staffRepository.save(staffEntity);
@@ -126,13 +149,41 @@ public class AccountService implements AccountApi {
     @Override
     @Transactional
     public void assignStaffForAccount(AssignStaffDto input) {
+        if (input == null || input.getStaff() == null || input.getStaff().getId() == null || input.getAccountId() == null) {
+            throw BusinessException.exception("ERROR_0001");
+        }
         StaffEntity staffEntity = staffRepository.getStaffById(input.getStaff().getId());
         AccountEntity accountEntity = accountRepository.getAccountById(input.getAccountId());
+
+        Optional<AccountStaffMapEntity> existingByAccount = accountStaffMapRepository.findOptionalByAccountId(accountEntity.getId());
+        if (existingByAccount.isPresent()) {
+            if (Objects.equals(existingByAccount.get().getStaffId(), staffEntity.getId())) {
+                return;
+            }
+            throw BusinessException.exception("CST030");
+        }
+
+        List<AccountStaffMapEntity> existingByStaff = accountStaffMapRepository.getListByStaffId(staffEntity.getId());
+        if (!existingByStaff.isEmpty()) {
+            throw BusinessException.exception("CST031");
+        }
+
         AccountStaffMapEntity accountStaffMapEntity = AccountStaffMapEntity.builder()
                 .accountId(accountEntity.getId())
                 .staffId(staffEntity.getId())
                 .build();
         accountStaffMapRepository.save(accountStaffMapEntity);
+
+        auditLogService.logExplicit(
+                "ASSIGN_ACCOUNT_TO_STAFF",
+                "ACCOUNT",
+                "AccountEntity",
+                String.valueOf(accountEntity.getId()),
+                null,
+                Map.of("staffId", staffEntity.getId(), "staffCode", String.valueOf(staffEntity.getCode())),
+                "Gán tài khoản " + accountEntity.getUsername() + " cho nhân sự " + staffEntity.getName(),
+                null
+        );
     }
 
     @Override
@@ -354,6 +405,29 @@ public class AccountService implements AccountApi {
                         .id(r.getId())
                         .name(r.getName())
                         .description(r.getDescription() != null ? r.getDescription() : (r.getName() != null ? r.getName().getValue() : null))
+                        .build())
+                .toList();
+    }
+
+    @Override
+    public List<AccountSimpleDto> getUnassignedAccounts() {
+        List<AccountEntity> unassigned = accountRepository.getUnassignedAccounts();
+        if (unassigned.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Set<Long> accountIds = new HashSet<>();
+        for (AccountEntity acc : unassigned) {
+            addIfNotNull(accountIds, acc.getId());
+        }
+        Map<Long, List<RoleDto>> roleMap = roleRepository.getMapRoleDtoByAccountIds(accountIds);
+        return unassigned.stream()
+                .map(acc -> AccountSimpleDto.builder()
+                        .id(acc.getId())
+                        .username(acc.getUsername())
+                        .firstName(acc.getFirstName())
+                        .lastName(acc.getLastName())
+                        .status(acc.getStatus())
+                        .roles(getData(roleMap, acc.getId()))
                         .build())
                 .toList();
     }

@@ -14,7 +14,9 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -38,11 +40,23 @@ public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> imple
 
     @Override
     public Page<StaffEntity> getPageStaff(StaffFilterParam param, Pageable pageable) {
-        String trimSearch = StringUtils.trimToNull(param.getSearch());
+        String trimSearch = param != null ? StringUtils.trimToNull(param.getSearch()) : null;
+        Pageable effectivePageable = (pageable != null && pageable.getSort().isUnsorted())
+                ? PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "id"))
+                : pageable;
+
         Filter<StaffEntity> filter = Filter.builder()
                 .search()
                 .isContains(StaffEntity_.NAME, trimSearch, FilterFlag.UNACCENT_CASE_SENSITIVE)
-                .pageable(pageable)
+                .isContains(StaffEntity_.CODE, trimSearch, FilterFlag.CASE_SENSITIVE)
+                .isContains(StaffEntity_.EMAIL, trimSearch, FilterFlag.CASE_SENSITIVE)
+                .isContains(StaffEntity_.PHONE, trimSearch, FilterFlag.CASE_SENSITIVE)
+                .isContains(StaffEntity_.ID_CARD_NUMBER, trimSearch, FilterFlag.CASE_SENSITIVE)
+                .filter()
+                .isEqual(StaffEntity_.POSITION, param != null ? param.getPosition() : null)
+                .isEqual(StaffEntity_.DEPARTMENT, param != null ? param.getDepartment() : null)
+                .isEqual(StaffEntity_.STATUS, param != null ? param.getStatus() : null)
+                .pageable(effectivePageable)
                 .withContext(entityManager)
                 .build(StaffEntity.class);
         return filter.getPage();

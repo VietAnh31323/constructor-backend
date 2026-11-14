@@ -16,4 +16,8 @@ public interface TaskStaffMapRepository extends BaseRepository<TaskStaffMapEntit
     void deleteAllByTaskIds(Collection<Long> taskIds);
 
     List<TaskStaffMapEntity> getListByTaskIds(Collection<Long> taskIds);
+
+    List<TaskStaffMapEntity> getListByStaffId(Long staffId);
+
+    List<TaskStaffMapEntity> getListByStaffIds(Collection<Long> staffIds);
 }

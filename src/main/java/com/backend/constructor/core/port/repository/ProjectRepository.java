@@ -7,6 +7,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
+
 @Repository
 public interface ProjectRepository extends BaseRepository<ProjectEntity> {
     ProjectEntity getProjectById(Long id);
@@ -15,4 +18,8 @@ public interface ProjectRepository extends BaseRepository<ProjectEntity> {
                                        Pageable pageable);
 
     ProjectEntity getProjectByTaskId(Long taskId);
+
+    List<ProjectEntity> getListByParticipantStaffId(Long staffId);
+
+    List<ProjectEntity> getListByParticipantStaffIds(Collection<Long> staffIds);
 }

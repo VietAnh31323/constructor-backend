@@ -37,6 +37,14 @@ public class UniqueValidationService {
     private void processValidation(Object entity, Field field, Unique anno) {
         List<FieldHolder> groupFields = findFieldsByGroup(entity, anno.group(), field);
 
+        // Bỏ qua kiểm tra trùng khi giá trị rỗng hoặc null (áp dụng cho các trường không bắt buộc như CCCD)
+        boolean anyNullOrBlank = groupFields.stream().anyMatch(h ->
+                h.value() == null || (h.value() instanceof String s && s.isBlank())
+        );
+        if (anyNullOrBlank) {
+            return;
+        }
+
         if (isDuplicate(entity, groupFields, anno.ignoreCase())) {
             // Thay vì throw RuntimeException chung chung, bạn nên dùng một Custom Exception
             throw BusinessException.exception(anno.err());

@@ -10,4 +10,6 @@ import java.util.List;
 @Repository
 public interface ProjectProgressTaskMapJpaRepository extends BaseJpaRepository<ProjectProgressTaskMapEntity> {
     List<ProjectProgressTaskMapEntity> findAllByProjectProgressIdIn(Collection<Long> projectProgressIds);
+
+    List<ProjectProgressTaskMapEntity> findAllByTaskIdIn(Collection<Long> taskIds);
 }

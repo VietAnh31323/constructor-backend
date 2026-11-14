@@ -6,8 +6,10 @@ import com.backend.constructor.core.port.repository.TaskStaffMapRepository;
 import com.backend.constructor.infras.repository.jpa.TaskStaffMapJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @Repository
@@ -32,6 +34,25 @@ public class TaskStaffMapRepositoryImpl extends JpaRepositoryAdapter<TaskStaffMa
 
     @Override
     public List<TaskStaffMapEntity> getListByTaskIds(Collection<Long> taskIds) {
+        if (CollectionUtils.isEmpty(taskIds)) {
+            return Collections.emptyList();
+        }
         return taskStaffMapJpaRepository.findAllByTaskIdIn(taskIds);
+    }
+
+    @Override
+    public List<TaskStaffMapEntity> getListByStaffId(Long staffId) {
+        if (staffId == null) {
+            return Collections.emptyList();
+        }
+        return taskStaffMapJpaRepository.findAllByStaffId(staffId);
+    }
+
+    @Override
+    public List<TaskStaffMapEntity> getListByStaffIds(Collection<Long> staffIds) {
+        if (CollectionUtils.isEmpty(staffIds)) {
+            return Collections.emptyList();
+        }
+        return taskStaffMapJpaRepository.findAllByStaffIdIn(staffIds);
     }
 }

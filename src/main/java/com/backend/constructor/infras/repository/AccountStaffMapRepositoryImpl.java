@@ -10,7 +10,10 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -26,6 +29,22 @@ public class AccountStaffMapRepositoryImpl extends JpaRepositoryAdapter<AccountS
                 .withContext(entityManager)
                 .build(AccountStaffMapEntity.class);
         return filter.getList();
+    }
+
+    @Override
+    public List<AccountStaffMapEntity> getListByStaffIds(Collection<Long> staffIds) {
+        if (staffIds == null || staffIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return accountStaffMapJpaRepository.findAllByStaffIdIn(staffIds);
+    }
+
+    @Override
+    public Optional<AccountStaffMapEntity> findOptionalByAccountId(Long accountId) {
+        if (accountId == null) {
+            return Optional.empty();
+        }
+        return accountStaffMapJpaRepository.findFirstByAccountId(accountId);
     }
 
     @Override

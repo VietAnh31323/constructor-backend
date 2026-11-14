@@ -115,6 +115,13 @@ public class AccountController implements AccountApi {
     }
 
     @Override
+    @GetMapping("/unassigned")
+    @PreAuthorize("hasAnyAuthority('USER_VIEW', 'USER_MANAGE', 'SCOPE_ADMIN')")
+    public List<AccountSimpleDto> getUnassignedAccounts() {
+        return accountService.getUnassignedAccounts();
+    }
+
+    @Override
     @GetMapping("/permissions")
     public Set<String> getCurrentUserPermissions() {
         return accountService.getCurrentUserPermissions();

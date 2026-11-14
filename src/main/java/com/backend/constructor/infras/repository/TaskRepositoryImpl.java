@@ -10,8 +10,10 @@ import com.backend.constructor.infras.repository.jpa.TaskJpaRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -35,6 +37,9 @@ public class TaskRepositoryImpl extends JpaRepositoryAdapter<TaskEntity> impleme
 
     @Override
     public Map<Long, TaskEntity> getTaskMapByIds(Collection<Long> taskIds) {
+        if (CollectionUtils.isEmpty(taskIds)) {
+            return Collections.emptyMap();
+        }
         return findAllByIds(taskIds).stream()
                 .collect(Collectors.toMap(TaskEntity::getId, Function.identity()));
     }
@@ -60,5 +65,21 @@ public class TaskRepositoryImpl extends JpaRepositoryAdapter<TaskEntity> impleme
                 .withContext(entityManager)
                 .build(TaskEntity.class);
         return filter.getList();
+    }
+
+    @Override
+    public List<TaskEntity> getListByReviewerId(Long reviewerId) {
+        if (reviewerId == null) {
+            return Collections.emptyList();
+        }
+        return taskJpaRepository.findAllByReviewerId(reviewerId);
+    }
+
+    @Override
+    public List<TaskEntity> getListByReviewerIds(Collection<Long> reviewerIds) {
+        if (CollectionUtils.isEmpty(reviewerIds)) {
+            return Collections.emptyList();
+        }
+        return taskJpaRepository.findAllByReviewerIdIn(reviewerIds);
     }
 }

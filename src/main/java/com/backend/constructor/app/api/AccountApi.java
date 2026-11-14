@@ -39,6 +39,8 @@ public interface AccountApi {
 
     List<RoleDto> getAllRoles();
 
+    List<AccountSimpleDto> getUnassignedAccounts();
+
     Set<String> getCurrentUserPermissions();
 
     List<PermissionDto> getAllPermissions();

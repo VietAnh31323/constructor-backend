@@ -9,6 +9,7 @@ import com.backend.constructor.common.base.repository.filter.FilterJoiner;
 import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.core.domain.entity.*;
 import com.backend.constructor.core.port.repository.ProjectRepository;
+import com.backend.constructor.infras.repository.jpa.ProjectJpaRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -17,12 +18,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
 public class ProjectRepositoryImpl extends JpaRepositoryAdapter<ProjectEntity> implements ProjectRepository {
     private final EntityManager entityManager;
+    private final ProjectJpaRepository projectJpaRepository;
 
     @Override
     public ProjectEntity getProjectById(Long id) {
@@ -62,5 +66,21 @@ public class ProjectRepositoryImpl extends JpaRepositoryAdapter<ProjectEntity> i
             return null;
         }
         return projectEntities.getFirst();
+    }
+
+    @Override
+    public List<ProjectEntity> getListByParticipantStaffId(Long staffId) {
+        if (staffId == null) {
+            return Collections.emptyList();
+        }
+        return projectJpaRepository.findAllByParticipantStaffId(staffId);
+    }
+
+    @Override
+    public List<ProjectEntity> getListByParticipantStaffIds(Collection<Long> staffIds) {
+        if (CollectionUtils.isEmpty(staffIds)) {
+            return Collections.emptyList();
+        }
+        return projectJpaRepository.findAllByParticipantStaffIds(staffIds);
     }
 }

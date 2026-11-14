@@ -7,6 +7,9 @@
 -- ============================================================================
 
 --changeset constructor:v1.0.7-01-add-account-security-columns
+-- Xóa check constraint cũ của Hibernate (nếu có) để hỗ trợ trạng thái LOCKED, DELETED
+ALTER TABLE account DROP CONSTRAINT IF EXISTS account_status_check;
+
 ALTER TABLE account
     ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
     ADD COLUMN IF NOT EXISTS failed_login_attempts INT NOT NULL DEFAULT 0,
