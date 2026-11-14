@@ -18,8 +18,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -48,6 +50,12 @@ public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> imple
 
     @Override
     public StaffEntity getStaffByUsername(String usernameLogin) {
+        return findOptionalStaffByUsername(usernameLogin)
+                .orElseThrow(() -> BusinessException.exception("CST020"));
+    }
+
+    @Override
+    public Optional<StaffEntity> findOptionalStaffByUsername(String usernameLogin) {
         Filter<StaffEntity> filter = Filter.builder()
                 .leftJoin(StaffEntity_.ID, new FilterJoiner(AccountStaffMapEntity.class, AccountStaffMapEntity_.STAFF_ID))
                 .thenLeftJoin(AccountStaffMapEntity_.ACCOUNT_ID, new FilterJoiner(AccountEntity.class, AccountEntity_.ID))
@@ -57,18 +65,20 @@ public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> imple
                 .withContext(entityManager)
                 .build(StaffEntity.class);
         List<StaffEntity> staffEntities = filter.getList();
-        if (staffEntities.isEmpty()) {
-            throw BusinessException.exception("CST020");
-        }
-        return staffEntities.getFirst();
+        return staffEntities.isEmpty() ? Optional.empty() : Optional.of(staffEntities.getFirst());
     }
 
     @Override
     public List<StaffEntity> getListStaffByAccountIds(Collection<Long> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return Collections.emptyList();
+        }
         Filter<StaffEntity> filter = Filter.builder()
                 .select(StaffEntity_.ID)
                 .select(StaffEntity_.CODE)
                 .select(StaffEntity_.NAME)
+                .select(StaffEntity_.FIRST_NAME)
+                .select(StaffEntity_.LAST_NAME)
                 .select(StaffEntity_.BIRTH_DATE)
                 .select(StaffEntity_.PHONE)
                 .select(StaffEntity_.POSITION)
@@ -94,19 +104,21 @@ public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> imple
 
     @Override
     public StaffEntity getStaffByAccountId(Long accountId) {
+        return findOptionalStaffByAccountId(accountId)
+                .orElseThrow(() -> BusinessException.exception("CST002"));
+    }
+
+    @Override
+    public Optional<StaffEntity> findOptionalStaffByAccountId(Long accountId) {
         Filter<StaffEntity> filter = Filter.builder()
                 .leftJoin(StaffEntity_.ID, new FilterJoiner(AccountStaffMapEntity.class, AccountStaffMapEntity_.STAFF_ID))
                 .thenLeftJoin(AccountStaffMapEntity_.ACCOUNT_ID, new FilterJoiner(AccountEntity.class, AccountEntity_.ID))
                 .filter()
                 .isEqual(AccountEntity_.ID, accountId)
-                .isEqual(AccountEntity_.STATUS, AccountStatus.ACTIVE)
                 .withContext(entityManager)
                 .build(StaffEntity.class);
         List<StaffEntity> staffEntities = filter.getList();
-        if (staffEntities.isEmpty()) {
-            throw BusinessException.exception("CST002");
-        }
-        return staffEntities.getFirst();
+        return staffEntities.isEmpty() ? Optional.empty() : Optional.of(staffEntities.getFirst());
     }
 
     @Override

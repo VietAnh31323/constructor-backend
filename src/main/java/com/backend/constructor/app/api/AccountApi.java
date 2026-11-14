@@ -1,9 +1,6 @@
 package com.backend.constructor.app.api;
 
-
-import com.backend.constructor.app.dto.account.AccountStaffDto;
-import com.backend.constructor.app.dto.account.PermissionDto;
-import com.backend.constructor.app.dto.account.RoleDto;
+import com.backend.constructor.app.dto.account.*;
 import com.backend.constructor.app.dto.staff.AssignStaffDto;
 import com.backend.constructor.app.dto.staff.StaffDto;
 import com.backend.constructor.common.base.dto.response.IdResponse;
@@ -32,9 +29,17 @@ public interface AccountApi {
 
     IdResponse updateRoleOfAccount(AccountStaffDto accountStaffDto);
 
+    IdResponse lockAccount(Long accountId);
+
+    IdResponse unlockAccount(Long accountId);
+
+    AdminResetPasswordResponse adminResetPassword(Long accountId, AdminResetPasswordDto input);
+
+    IdResponse updateForceChangePassword(Long accountId, ForceChangePasswordDto input);
+
     List<RoleDto> getAllRoles();
 
-    java.util.Set<String> getCurrentUserPermissions();
+    Set<String> getCurrentUserPermissions();
 
-    List<com.backend.constructor.app.dto.account.PermissionDto> getAllPermissions();
+    List<PermissionDto> getAllPermissions();
 }

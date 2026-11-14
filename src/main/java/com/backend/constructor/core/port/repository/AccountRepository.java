@@ -18,6 +18,8 @@ public interface AccountRepository extends BaseRepository<AccountEntity> {
 
     Optional<AccountEntity> findByUsername(String username);
 
+    Optional<AccountEntity> findAnyByUsername(String username);
+
     AccountEntity getByUsername(String username);
 
     boolean existsByUsername(String username);

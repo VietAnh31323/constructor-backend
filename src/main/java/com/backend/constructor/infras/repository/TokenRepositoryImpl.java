@@ -23,24 +23,13 @@ public class TokenRepositoryImpl extends JpaRepositoryAdapter<TokenEntity> imple
 
     @Override
     public Optional<TokenEntity> findByRefreshToken(String refreshToken) {
-        return tokenJpaRepository.findByTokenAndTypeAndRevokedIsNullOrRevokedIsFalse(refreshToken, TokenType.REFRESH);
+        return tokenJpaRepository.findActiveToken(refreshToken, TokenType.REFRESH);
     }
 
     @Override
     public TokenEntity findByResetToken(String resetToken) {
-        Filter<TokenEntity> filter = Filter.builder()
-                .search()
-                .isNull(TokenEntity_.REVOKED)
-                .isEqual(TokenEntity_.REVOKED, false)
-                .filter()
-                .isEqual(TokenEntity_.TOKEN, resetToken)
-                .withContext(entityManager)
-                .build(TokenEntity.class);
-        List<TokenEntity> tokenEntities = filter.getList();
-        if (tokenEntities.isEmpty()) {
-            throw BusinessException.exception("CST009");
-        }
-        return tokenEntities.getFirst();
+        return tokenJpaRepository.findActiveToken(resetToken, TokenType.RESET_PASSWORD)
+                .orElseThrow(() -> BusinessException.exception("CST009"));
     }
 
     @Override
@@ -52,5 +41,10 @@ public class TokenRepositoryImpl extends JpaRepositoryAdapter<TokenEntity> imple
                 .withContext(entityManager)
                 .build(TokenEntity.class);
         return filter.getList();
+    }
+
+    @Override
+    public List<TokenEntity> findAllActiveByAccountId(Long accountId) {
+        return tokenJpaRepository.findAllActiveByAccountId(accountId);
     }
 }

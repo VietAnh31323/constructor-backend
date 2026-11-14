@@ -34,7 +34,9 @@ public enum EPermission {
     CUSTOMER_MANAGE("Thêm và quản lý khách hàng", "CUSTOMER"),
 
     USER_VIEW("Xem danh sách tài khoản và nhân viên", "USER"),
-    USER_MANAGE("Quản lý tài khoản, nhân viên và phân quyền", "USER");
+    USER_MANAGE("Quản lý tài khoản, nhân viên và phân quyền", "USER"),
+
+    AUDIT_LOG_VIEW("Xem nhật ký hoạt động hệ thống", "SYSTEM");
 
     private final String description;
     private final String module;

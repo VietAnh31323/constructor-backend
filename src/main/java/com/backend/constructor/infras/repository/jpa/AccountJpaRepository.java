@@ -22,8 +22,9 @@ public interface AccountJpaRepository extends BaseJpaRepository<AccountEntity> {
     Optional<AccountEntity> findByUsernameAndRole(String username,
                                                   ERole roleName);
 
-
     boolean existsByUsername(String username);
+
+    Optional<AccountEntity> findByUsername(String username);
 
     Optional<AccountEntity> findByUsernameAndStatus(String username, AccountStatus status);
 }

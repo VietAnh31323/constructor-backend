@@ -1,15 +1,13 @@
 package com.backend.constructor.user.controller.impl;
 
 import com.backend.constructor.app.api.AccountApi;
-import com.backend.constructor.app.dto.account.AccountStaffDto;
+import com.backend.constructor.app.dto.account.*;
 import com.backend.constructor.app.dto.staff.AssignStaffDto;
 import com.backend.constructor.app.dto.staff.StaffDto;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.common.base.response.Message;
 import com.backend.constructor.common.base.response.paging.HandsomePaging;
 import com.backend.constructor.common.enums.AccountStatus;
-import com.backend.constructor.app.dto.account.PermissionDto;
-import com.backend.constructor.app.dto.account.RoleDto;
 import com.backend.constructor.user.dto.request.ChangePasswordDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,20 +36,19 @@ public class AccountController implements AccountApi {
 
     @Override
     @PutMapping
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN','SCOPE_STAFF')")
     public IdResponse updateAccountInfo(@RequestBody @Valid StaffDto userInfoDto) {
         return accountService.updateAccountInfo(userInfoDto);
     }
 
     @Override
     @PutMapping("/change-password")
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN','SCOPE_STAFF', 'SCOPE_CUSTOMER_CARE')")
     public void changePassword(@RequestBody @Valid ChangePasswordDto input) {
         accountService.changePassword(input);
     }
 
     @Override
     @PutMapping("/assign")
+    @PreAuthorize("hasAnyAuthority('USER_MANAGE', 'SCOPE_ADMIN')")
     @Message("SUCCESS_005")
     public void assignStaffForAccount(@RequestBody @Valid AssignStaffDto input) {
         accountService.assignStaffForAccount(input);
@@ -79,6 +76,36 @@ public class AccountController implements AccountApi {
     @PreAuthorize("hasAnyAuthority('USER_MANAGE', 'SCOPE_ADMIN')")
     public IdResponse updateRoleOfAccount(@RequestBody @Valid AccountStaffDto accountStaffDto) {
         return accountService.updateRoleOfAccount(accountStaffDto);
+    }
+
+    @Override
+    @PutMapping("/{accountId}/lock")
+    @PreAuthorize("hasAnyAuthority('USER_MANAGE', 'SCOPE_ADMIN')")
+    public IdResponse lockAccount(@PathVariable Long accountId) {
+        return accountService.lockAccount(accountId);
+    }
+
+    @Override
+    @PutMapping("/{accountId}/unlock")
+    @PreAuthorize("hasAnyAuthority('USER_MANAGE', 'SCOPE_ADMIN')")
+    public IdResponse unlockAccount(@PathVariable Long accountId) {
+        return accountService.unlockAccount(accountId);
+    }
+
+    @Override
+    @PostMapping("/{accountId}/reset-password")
+    @PreAuthorize("hasAnyAuthority('USER_MANAGE', 'SCOPE_ADMIN')")
+    public AdminResetPasswordResponse adminResetPassword(@PathVariable Long accountId,
+                                                         @RequestBody(required = false) AdminResetPasswordDto input) {
+        return accountService.adminResetPassword(accountId, input);
+    }
+
+    @Override
+    @PutMapping("/{accountId}/force-change-password")
+    @PreAuthorize("hasAnyAuthority('USER_MANAGE', 'SCOPE_ADMIN')")
+    public IdResponse updateForceChangePassword(@PathVariable Long accountId,
+                                                @RequestBody @Valid ForceChangePasswordDto input) {
+        return accountService.updateForceChangePassword(accountId, input);
     }
 
     @Override

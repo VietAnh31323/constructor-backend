@@ -13,14 +13,14 @@ import com.backend.constructor.core.port.repository.AccountRoleMapRepository;
 import com.backend.constructor.core.port.repository.PermissionRepository;
 import com.backend.constructor.core.port.repository.RolePermissionMapRepository;
 import com.backend.constructor.core.port.repository.RoleRepository;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,18 +30,23 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AccountInit implements CommandLineRunner {
-    AccountRepository accountRepository;
-    PasswordEncoder passwordEncoder;
+    private final AccountRepository accountRepository;
+    private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
     private final AccountRoleMapRepository accountRoleMapRepository;
     private final PermissionRepository permissionRepository;
     private final RolePermissionMapRepository rolePermissionMapRepository;
 
+    @Value("${app.admin.username:}")
+    private String adminUsername;
+
+    @Value("${app.admin.password:}")
+    private String adminPassword;
+
     @Override
     @Transactional
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         log.info("Init roles");
         for (ERole eRole : ERole.values()) {
             if (roleRepository.getByName(eRole).isEmpty()) {
@@ -63,15 +68,12 @@ public class AccountInit implements CommandLineRunner {
             }
         }
 
-        log.info("Init admin");
+        log.info("Sync admin role permissions");
         RoleEntity roleEntity = roleRepository.getByName(ERole.ADMIN)
-                .orElseGet(() -> {
-                    RoleEntity adminRoleEntity = RoleEntity.builder()
-                            .name(ERole.ADMIN)
-                            .description(ERole.ADMIN.getValue())
-                            .build();
-                    return roleRepository.save(adminRoleEntity);
-                });
+                .orElseGet(() -> roleRepository.save(RoleEntity.builder()
+                        .name(ERole.ADMIN)
+                        .description(ERole.ADMIN.getValue())
+                        .build()));
 
         List<PermissionEntity> allPerms = permissionRepository.getAllPermissions();
         List<RolePermissionMapEntity> existing = rolePermissionMapRepository.getListByRoleId(roleEntity.getId());
@@ -89,8 +91,11 @@ public class AccountInit implements CommandLineRunner {
             rolePermissionMapRepository.saveAll(toAdd);
         }
 
-        String adminUsername = "admin@gmail.com";
-        String adminPassword = "admin";
+        if (!StringUtils.hasText(adminUsername) || !StringUtils.hasText(adminPassword)) {
+            log.info("Initial admin credentials not configured via environment; skipping admin account creation");
+            return;
+        }
+
         if (accountRepository.existsByUsername(adminUsername)) {
             return;
         }
@@ -101,6 +106,8 @@ public class AccountInit implements CommandLineRunner {
                 .firstName("Mr.")
                 .lastName("Owner")
                 .status(AccountStatus.ACTIVE)
+                .mustChangePassword(false)
+                .failedLoginAttempts(0)
                 .build();
         this.accountRepository.save(account);
         saveAccountRoleMap(account, roleEntity);

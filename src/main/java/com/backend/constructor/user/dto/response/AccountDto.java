@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Set;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -20,6 +22,7 @@ public class AccountDto {
     String refreshToken;
     Instant refreshTokenExpiry;
     String authScheme;
-    java.util.List<String> roles;
-    java.util.Set<String> permissions;
+    Boolean mustChangePassword;
+    List<String> roles;
+    Set<String> permissions;
 }

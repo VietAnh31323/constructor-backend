@@ -14,4 +14,6 @@ public interface TokenRepository extends BaseRepository<TokenEntity> {
     TokenEntity findByResetToken(String resetToken);
 
     List<TokenEntity> findByAccountAndRevoked(Long accountId, Boolean revoked);
+
+    List<TokenEntity> findAllActiveByAccountId(Long accountId);
 }

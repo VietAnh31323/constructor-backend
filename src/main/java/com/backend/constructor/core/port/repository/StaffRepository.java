@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 @Repository
@@ -21,11 +22,15 @@ public interface StaffRepository extends BaseRepository<StaffEntity> {
 
     StaffEntity getStaffByUsername(String usernameLogin);
 
+    Optional<StaffEntity> findOptionalStaffByUsername(String usernameLogin);
+
     List<StaffEntity> getListStaffByAccountIds(Collection<Long> accountIds);
 
     Map<Long, CodeNameResponse> getMapSimpleStaffByIds(Set<Long> staffIds);
 
     StaffEntity getStaffByAccountId(Long accountId);
+
+    Optional<StaffEntity> findOptionalStaffByAccountId(Long accountId);
 
     Map<Long, StaffEntity> getMapStaffEntityByIds(Set<Long> staffIds);
 }

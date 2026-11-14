@@ -12,6 +12,7 @@ import com.backend.constructor.core.port.repository.AccountRepository;
 import com.backend.constructor.infras.repository.jpa.AccountJpaRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
@@ -41,6 +42,11 @@ public class AccountRepositoryImpl extends JpaRepositoryAdapter<AccountEntity> i
     }
 
     @Override
+    public Optional<AccountEntity> findAnyByUsername(String username) {
+        return accountJpaRepository.findByUsername(username);
+    }
+
+    @Override
     public AccountEntity getByUsername(String username) {
         return accountJpaRepository.findByUsernameAndStatus(username, AccountStatus.ACTIVE)
                 .orElseThrow(() -> BusinessException.exception("CST000"));
@@ -53,14 +59,17 @@ public class AccountRepositoryImpl extends JpaRepositoryAdapter<AccountEntity> i
 
     @Override
     public AccountEntity getAccountById(Long accountId) {
-        return findById(accountId).orElseThrow(() -> new BusinessException("400", "Account not found"));
+        return findById(accountId).orElseThrow(() -> BusinessException.exception("CST000"));
     }
 
     @Override
     public Page<AccountEntity> getPageAccount(String search, AccountStatus accountStatus, Pageable pageable) {
+        String trimSearch = StringUtils.trimToNull(search);
         Filter<AccountEntity> filter = Filter.builder()
                 .search()
-                .isContains(AccountEntity_.USERNAME, search, FilterFlag.UNACCENT_CASE_SENSITIVE)
+                .isContains(AccountEntity_.USERNAME, trimSearch, FilterFlag.UNACCENT_CASE_SENSITIVE)
+                .isContains(AccountEntity_.FIRST_NAME, trimSearch, FilterFlag.UNACCENT_CASE_SENSITIVE)
+                .isContains(AccountEntity_.LAST_NAME, trimSearch, FilterFlag.UNACCENT_CASE_SENSITIVE)
                 .filter()
                 .isEqual(AccountEntity_.STATUS, accountStatus)
                 .withContext(entityManager)

@@ -5,6 +5,7 @@ import com.backend.constructor.common.enums.AccountStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 @Setter
@@ -35,4 +36,14 @@ public class AccountEntity extends BaseEntity {
     private AccountStatus status;
 
     private Long staffCount;
+
+    @Builder.Default
+    private Boolean mustChangePassword = false;
+
+    @Builder.Default
+    private Integer failedLoginAttempts = 0;
+
+    private Instant lockedUntil;
+
+    private Instant tokensValidAfter;
 }

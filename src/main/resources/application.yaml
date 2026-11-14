@@ -1,36 +1,35 @@
 server:
-  port: 8078
+  port: ${SERVER_PORT:8078}
   servlet:
     encoding:
       charset: UTF-8
       force: true
       enabled: true
+
 spring:
   application:
     name: constructor
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   messages:
     encoding: UTF-8
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:postgresql://${POSTGRESQL_HOST:localhost}:${POSTGRESQL_PORT:5432}/${POSTGRESQL_DATABASE:postgres}?currentSchema=constructor
-    username: ${POSTGRESQL_USER:postgres}
-    password: ${POSTGRESQL_PASS:root}
     hikari:
       poolName: Hikari
       auto-commit: false
   liquibase:
     enabled: true
     change-log: classpath:changelog/db.changelog-master.yaml
-    default-schema: constructor
+    default-schema: ${POSTGRESQL_SCHEMA:constructor}
   servlet:
     multipart:
       enabled: true
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: ${MAX_FILE_SIZE:10MB}
+      max-request-size: ${MAX_REQUEST_SIZE:10MB}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     database: postgresql
-    show-sql: true
     hibernate:
       ddl-auto: none
       naming:
@@ -44,44 +43,29 @@ spring:
       hibernate.cache.use_second_level_cache: false
       hibernate.cache.use_query_cache: false
       hibernate.generate_statistics: false
-      # modify batch size as necessary
       hibernate.jdbc.batch_size: 25
       hibernate.order_inserts: true
       hibernate.order_updates: true
       hibernate.query.fail_on_pagination_over_collection_fetch: true
       hibernate.query.in_clause_parameter_padding: true
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: nvietanh170@gmail.com
-    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
-jwt:
-  expired: 1440
-  rsa-private-key: classpath:certs/privateKey.pem
-  rsa-public-key: classpath:certs/publicKey.pem
-logging:
-  level:
-    ROOT: INFO
-    org.hibernate.SQL: INFO
-    com.backend.constructor: debug
-springdoc:
-  api-docs:
-    enabled: true
-  swagger-ui:
-    enabled: true
+
+security:
+  login:
+    max-attempts: ${LOGIN_MAX_ATTEMPTS:5}
+    lock-duration-minutes: ${LOGIN_LOCK_DURATION_MINUTES:15}
+    ip-max-attempts: ${LOGIN_IP_MAX_ATTEMPTS:20}
+    ip-window-minutes: ${LOGIN_IP_WINDOW_MINUTES:5}
+
 openapi:
   service:
     api-docs: api-service
     title: ${API_TITLE:Constructor Backend API}
-    server: ${API_URL:http://localhost:8080}
+    server: ${API_URL:http://localhost:8078}
     version: 1.0.0
-cloudinary:
-  cloud-name: ${CLOUDINARY_CLOUD_NAME}
-  api-key: ${CLOUDINARY_API_KEY}
-  api-secret: ${CLOUDINARY_API_SECRET}

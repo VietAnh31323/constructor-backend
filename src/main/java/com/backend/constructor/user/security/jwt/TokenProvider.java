@@ -6,9 +6,11 @@ import com.backend.constructor.config.properties.RsaKeyProperties;
 import com.backend.constructor.core.domain.entity.AccountEntity;
 import com.backend.constructor.core.domain.entity.RoleEntity;
 import com.backend.constructor.core.port.repository.AccountRepository;
+import com.backend.constructor.core.port.repository.PermissionRepository;
 import com.backend.constructor.core.port.repository.RoleRepository;
 import com.backend.constructor.core.port.repository.TokenRepository;
 import com.backend.constructor.user.security.SecurityUtils;
+import com.backend.constructor.user.service.TokenRevocationService;
 import com.nimbusds.jwt.JWTParser;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +43,8 @@ public class TokenProvider {
     private final TokenRepository tokenRepository;
     private final AccountRepository accountRepository;
     private final RoleRepository roleRepository;
-    private final com.backend.constructor.core.port.repository.PermissionRepository permissionRepository;
+    private final PermissionRepository permissionRepository;
+    private final TokenRevocationService tokenRevocationService;
 
     private static final String AUTHORITIES_KEY = "scope";
     private static final String INVALID_JWT_TOKEN = "Invalid JWT token.";
@@ -50,11 +53,13 @@ public class TokenProvider {
     public Jwt createToken(Authentication authentication) {
         log.info("[TokenProvider:createToken] Token Creation Started for:{}", authentication.getName());
 
-        final var authorities = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.joining(","));
+        final var authorities = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(","));
         final var now = Instant.now();
 
         final var claims = JwtClaimsSet.builder()
-                .issuer("nvietanh.com")
+                .issuer(rsaKeyProperties.issuer())
                 .issuedAt(now)
                 .expiresAt(now.plus(rsaKeyProperties.expired(), ChronoUnit.MINUTES))
                 .subject(authentication.getName())
@@ -66,10 +71,11 @@ public class TokenProvider {
 
     public Jwt createRefreshToken(Authentication authentication) {
         log.info("[TokenProvider:createRefreshToken] Token Creation Started for:{}", authentication.getName());
+        Instant now = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("devtuna.com")
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plus(15, ChronoUnit.DAYS))
+                .issuer(rsaKeyProperties.issuer())
+                .issuedAt(now)
+                .expiresAt(now.plus(rsaKeyProperties.refreshExpiredDays(), ChronoUnit.DAYS))
                 .subject(authentication.getName())
                 .claim(AUTHORITIES_KEY, TokenType.REFRESH)
                 .build();
@@ -79,10 +85,11 @@ public class TokenProvider {
 
     public Jwt createResetToken(String username) {
         log.info("[TokenProvider:createResetToken] Token Creation Started for:{}", username);
+        Instant now = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("devtuna.com")
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plus(5, ChronoUnit.MINUTES))
+                .issuer(rsaKeyProperties.issuer())
+                .issuedAt(now)
+                .expiresAt(now.plus(5, ChronoUnit.MINUTES))
                 .subject(username)
                 .claim(AUTHORITIES_KEY, TokenType.RESET_PASSWORD)
                 .build();
@@ -92,7 +99,7 @@ public class TokenProvider {
 
     public boolean isRefreshTokenValidInDatabase(Jwt jwt) {
         return tokenRepository.findByRefreshToken(jwt.getTokenValue())
-                .map(token -> !token.getRevoked())
+                .map(token -> !Boolean.TRUE.equals(token.getRevoked()))
                 .orElse(false);
     }
 
@@ -106,20 +113,40 @@ public class TokenProvider {
 
     public boolean validateToken(final String token) {
         try {
+            if (tokenRevocationService.isAccessTokenBlacklisted(token)) {
+                return false;
+            }
             JWTParser.parse(token);
             return getIfTokenIsExpired(jwtDecoder.decode(token));
-        } catch (ParseException e) {
+        } catch (ParseException | JwtException e) {
             log.error(INVALID_JWT_TOKEN, e);
             return false;
         }
+    }
+
+    public Jwt decodeJwt(final String token) {
+        return jwtDecoder.decode(token);
+    }
+
+    public Optional<AccountEntity> findAccountByTokenSubject(final Jwt jwt) {
+        if (jwt == null || !StringUtils.hasText(jwt.getSubject())) {
+            return Optional.empty();
+        }
+        return accountRepository.findAnyByUsername(jwt.getSubject());
+    }
+
+    public boolean isTokenRevokedForAccount(final Jwt jwt, final AccountEntity account) {
+        if (account.getTokensValidAfter() != null && jwt.getIssuedAt() != null) {
+            return jwt.getIssuedAt().isBefore(account.getTokensValidAfter());
+        }
+        return false;
     }
 
     public boolean isTokenValid(Jwt jwtToken, UserDetails userDetails) {
         final String userName = getUserName(jwtToken);
         boolean isTokenExpired = getIfTokenIsExpired(jwtToken);
         boolean isTokenUserSameAsDatabase = userName.equals(userDetails.getUsername());
-        return !isTokenExpired && isTokenUserSameAsDatabase;
-
+        return isTokenExpired && isTokenUserSameAsDatabase;
     }
 
     private boolean getIfTokenIsExpired(Jwt jwtToken) {
@@ -143,9 +170,10 @@ public class TokenProvider {
     public Authentication getAuthentication(final String token) {
         try {
             Jwt jwt = jwtDecoder.decode(token);
-
-            Collection<? extends GrantedAuthority> authorities = Arrays.stream(
-                            jwt.getClaimAsString(AUTHORITIES_KEY).split(","))
+            String scopeClaim = jwt.getClaimAsString(AUTHORITIES_KEY);
+            Collection<? extends GrantedAuthority> authorities = scopeClaim == null
+                    ? Collections.emptyList()
+                    : Arrays.stream(scopeClaim.split(","))
                     .map(String::trim)
                     .filter(auth -> !auth.isEmpty())
                     .flatMap(auth -> {

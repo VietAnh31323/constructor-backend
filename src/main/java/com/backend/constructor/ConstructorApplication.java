@@ -15,7 +15,6 @@ import java.net.UnknownHostException;
 
 @SpringBootApplication(scanBasePackages = {"com.backend.constructor"})
 @EnableJpaRepositories(basePackages = "com.backend.constructor.infras.repository.jpa")
-@EnableConfigurationProperties({RsaKeyProperties.class})
 public class ConstructorApplication {
 
     private static final Logger log = LoggerFactory.getLogger(ConstructorApplication.class);

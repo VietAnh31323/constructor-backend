@@ -21,9 +21,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-/**
- * Authenticate a user from the database.
- */
 @Slf4j
 @Component("userDetailsService")
 @RequiredArgsConstructor
@@ -39,15 +36,15 @@ public class DomainUserDetailsService implements UserDetailsService {
         log.debug("Authenticating {}", username);
         if (new EmailValidator().isValid(username, null)) {
             return accountRepository
-                    .findByUsername(username)
+                    .findAnyByUsername(username)
                     .map(this::createSpringSecurityUser)
                     .orElseThrow(() -> new UsernameNotFoundException("User with email " + username + " was not found in the database"));
         }
         final var lowercaseLogin = username.toLowerCase(Locale.ENGLISH);
         return accountRepository
-                    .findByUsername(lowercaseLogin)
-                    .map(this::createSpringSecurityUser)
-                    .orElseThrow(() -> new UsernameNotFoundException("User " + lowercaseLogin + " was not found in the database"));
+                .findAnyByUsername(lowercaseLogin)
+                .map(this::createSpringSecurityUser)
+                .orElseThrow(() -> new UsernameNotFoundException("User " + lowercaseLogin + " was not found in the database"));
     }
 
     private User createSpringSecurityUser(AccountEntity account) {

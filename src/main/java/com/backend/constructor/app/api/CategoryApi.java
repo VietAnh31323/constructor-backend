@@ -8,19 +8,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 public interface CategoryApi {
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
     IdResponse create(CategoryDto input);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
     IdResponse update(CategoryDto input);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_DELETE', 'SCOPE_ADMIN')")
     IdResponse delete(Long id);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_VIEW', 'PROJECT_CREATE', 'PROJECT_UPDATE', 'SCOPE_ADMIN')")
     CategoryDto getDetail(Long id);
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('PROJECT_VIEW', 'PROJECT_CREATE', 'PROJECT_UPDATE', 'SCOPE_ADMIN')")
     Page<CategoryDto> getListCategory(CategoryFilterParam param,
                                       Pageable pageable);
 }
