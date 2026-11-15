@@ -58,8 +58,12 @@ public class TaskService implements TaskApi {
         TaskEntity taskEntity = taskMapper.toEntity(input);
         taskEntity.setState(TaskState.NOT_STARTED);
         uniqueValidationService.validate(taskEntity);
-        StaffEntity staffEntity = staffRepository.getStaffByUsername(HelperService.getUsernameLogin());
-        taskEntity.setReviewerId(staffEntity.getId());
+        if (input.getReviewer() != null && input.getReviewer().getId() != null) {
+            taskEntity.setReviewerId(input.getReviewer().getId());
+        } else {
+            staffRepository.findOptionalStaffByUsername(HelperService.getUsernameLogin())
+                    .ifPresent(staffEntity -> taskEntity.setReviewerId(staffEntity.getId()));
+        }
         taskRepository.save(taskEntity);
         saveTaskStaffMap(taskEntity.getId(), input.getTaskStaffMaps());
         return IdResponse.builder().id(taskEntity.getId()).build();
@@ -139,15 +143,23 @@ public class TaskService implements TaskApi {
         TaskEntity task = taskRepository.getTaskById(input.getId());
         if (input.getState() == null) throw BusinessException.exception("CST019");
         task.setState(input.getState());
+        if (TaskState.COMPLETED.equals(input.getState())) {
+            task.setProgressPercent(BigDecimal.valueOf(100));
+        } else if (TaskState.NOT_STARTED.equals(input.getState())) {
+            task.setProgressPercent(BigDecimal.ZERO);
+        } else if (TaskState.IN_PROGRESS.equals(input.getState())) {
+            if (task.getProgressPercent() == null
+                    || task.getProgressPercent().compareTo(BigDecimal.ZERO) <= 0
+                    || task.getProgressPercent().compareTo(BigDecimal.valueOf(100)) >= 0) {
+                task.setProgressPercent(BigDecimal.valueOf(50));
+            }
+        }
         taskRepository.save(task);
         if (task.getParentId() != null) {
             TaskEntity parentTask = taskRepository.getTaskById(task.getParentId());
             syncStateParentTask(parentTask);
             syncStateProjectTask(parentTask);
             return;
-        }
-        if (TaskState.COMPLETED.equals(task.getState())) {
-            task.setProgressPercent(BigDecimal.valueOf(100));
         }
         syncStateProjectTask(task);
     }

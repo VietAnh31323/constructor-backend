@@ -22,4 +22,10 @@ public interface ProjectRepository extends BaseRepository<ProjectEntity> {
     List<ProjectEntity> getListByParticipantStaffId(Long staffId);
 
     List<ProjectEntity> getListByParticipantStaffIds(Collection<Long> staffIds);
+
+    List<ProjectEntity> getListByCustomerId(Long customerId);
+
+    List<ProjectEntity> getListByCustomerIds(Collection<Long> customerIds);
+
+    boolean existsByCustomerId(Long customerId);
 }

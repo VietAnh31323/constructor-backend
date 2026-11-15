@@ -36,6 +36,14 @@ public class TaskRepositoryImpl extends JpaRepositoryAdapter<TaskEntity> impleme
     }
 
     @Override
+    public List<TaskEntity> getListTaskByParentIds(Collection<Long> parentIds) {
+        if (CollectionUtils.isEmpty(parentIds)) {
+            return Collections.emptyList();
+        }
+        return taskJpaRepository.findAllByParentIdIn(parentIds);
+    }
+
+    @Override
     public Map<Long, TaskEntity> getTaskMapByIds(Collection<Long> taskIds) {
         if (CollectionUtils.isEmpty(taskIds)) {
             return Collections.emptyMap();

@@ -35,12 +35,10 @@ import java.util.*;
 public class AuditLogService implements AuditLogApi {
 
     private static final Set<String> SENSITIVE_FIELDS = Set.of(
-            "password", "otpHash", "genPassword", "token", "refreshToken", "tokensValidAfter"
-    );
+            "password", "otpHash", "genPassword", "token", "refreshToken", "tokensValidAfter");
 
     private static final Set<String> IGNORED_META_FIELDS = Set.of(
-            "createdAt", "updatedAt", "createdBy", "updatedBy", "serialVersionUID"
-    );
+            "createdAt", "updatedAt", "createdBy", "updatedBy", "serialVersionUID");
 
     private static final Set<Class<?>> SKIPPED_ENTITIES = Set.of(
             AuditLogEntity.class,
@@ -49,8 +47,8 @@ public class AuditLogService implements AuditLogApi {
             PermissionEntity.class,
             RolePermissionMapEntity.class,
             RoleEntity.class,
-            AccountRoleMapEntity.class
-    );
+            AccountRoleMapEntity.class,
+            ProjectStateLogEntity.class);
 
     private final AuditLogRepository auditLogRepository;
     private final AuditLogJpaRepository auditLogJpaRepository;
@@ -69,13 +67,13 @@ public class AuditLogService implements AuditLogApi {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logExplicit(String action,
-                            String module,
-                            String entityName,
-                            String entityId,
-                            Object oldValue,
-                            Object newValue,
-                            String description,
-                            String actorOverride) {
+            String module,
+            String entityName,
+            String entityId,
+            Object oldValue,
+            Object newValue,
+            String description,
+            String actorOverride) {
         try {
             String actor = actorOverride != null
                     ? actorOverride
@@ -141,7 +139,8 @@ public class AuditLogService implements AuditLogApi {
                 return map;
             }
         } catch (Exception e) {
-            log.debug("Could not read Hibernate loadedState for {}: {}", entity.getClass().getSimpleName(), e.getMessage());
+            log.debug("Could not read Hibernate loadedState for {}: {}", entity.getClass().getSimpleName(),
+                    e.getMessage());
         }
         return extractCurrentState(entity);
     }
@@ -225,8 +224,7 @@ public class AuditLogService implements AuditLogApi {
             Map<String, Object> newState = Map.of(
                     "id", deleted.getId() != null ? deleted.getId() : "",
                     "deletedAt", deleted.getDeletedAt() != null ? deleted.getDeletedAt().toString() : "",
-                    "deletedBy", deleted.getDeletedBy() != null ? deleted.getDeletedBy() : ""
-            );
+                    "deletedBy", deleted.getDeletedBy() != null ? deleted.getDeletedBy() : "");
             String entityName = deleted.getClass().getSimpleName();
             String module = resolveModule(deleted.getClass());
             String entityId = deleted.getId() != null ? String.valueOf(deleted.getId()) : null;
@@ -275,14 +273,22 @@ public class AuditLogService implements AuditLogApi {
 
     private String resolveModule(Class<?> clazz) {
         String name = clazz.getSimpleName().toLowerCase(Locale.ROOT);
-        if (name.contains("steel") || name.contains("assembly")) return "STEEL";
-        if (name.contains("projectprogress") || name.contains("progress")) return "PROGRESS";
-        if (name.contains("task")) return "TASK";
-        if (name.contains("project")) return "PROJECT";
-        if (name.contains("category")) return "CATEGORY";
-        if (name.contains("customer")) return "CUSTOMER";
-        if (name.contains("staff")) return "STAFF";
-        if (name.contains("account")) return "ACCOUNT";
+        if (name.contains("steel") || name.contains("assembly"))
+            return "STEEL";
+        if (name.contains("projectprogress") || name.contains("progress"))
+            return "PROGRESS";
+        if (name.contains("task"))
+            return "TASK";
+        if (name.contains("project"))
+            return "PROJECT";
+        if (name.contains("category"))
+            return "CATEGORY";
+        if (name.contains("customer"))
+            return "CUSTOMER";
+        if (name.contains("staff"))
+            return "STAFF";
+        if (name.contains("account"))
+            return "ACCOUNT";
         return "SYSTEM";
     }
 
@@ -291,7 +297,9 @@ public class AuditLogService implements AuditLogApi {
             case "ProjectEntity" -> "dự án";
             case "CategoryEntity" -> "hạng mục";
             case "CustomerEntity" -> "khách hàng";
+            case "CustomerCareLogEntity" -> "lịch sử chăm sóc khách hàng";
             case "StaffEntity" -> "nhân sự";
+            case "StaffCertificateEntity" -> "chứng chỉ hành nghề";
             case "AccountEntity" -> "tài khoản";
             case "ProgressEntity" -> "tiến trình";
             case "ProjectProgressEntity" -> "tiến độ dự án";

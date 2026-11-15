@@ -30,6 +30,25 @@ public class JwtAccessTokenFilter extends OncePerRequestFilter {
 
     final TokenProvider tokenProvider;
 
+    public static boolean isPublicEndpoint(String uri) {
+        if (uri == null) {
+            return false;
+        }
+        return uri.equals("/sign-in")
+                || uri.equals("/sign-up")
+                || uri.startsWith("/password/")
+                || uri.startsWith("/public/")
+                || uri.startsWith("/v3/api-docs")
+                || uri.startsWith("/swagger-ui")
+                || uri.startsWith("/swagger-resources")
+                || uri.startsWith("/webjars/");
+    }
+
+    @Override
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+        return isPublicEndpoint(request.getRequestURI());
+    }
+
     @Override
     protected void doFilterInternal(@NonNull final HttpServletRequest request,
                                     @NonNull final HttpServletResponse response,
@@ -44,10 +63,6 @@ public class JwtAccessTokenFilter extends OncePerRequestFilter {
         }
 
         String uri = request.getRequestURI();
-        if (uri != null && uri.startsWith("/password/")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
 
         if (!tokenProvider.validateToken(token)) {
             SecurityContextHolder.clearContext();

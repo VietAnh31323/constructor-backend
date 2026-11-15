@@ -16,6 +16,7 @@ public class StaffProjectItemDto {
     private Long id;
     private String code;
     private String name;
+    private Long customerId;
     private String owner;
     private String address;
     private ProjectState state;

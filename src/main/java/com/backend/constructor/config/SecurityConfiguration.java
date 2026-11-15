@@ -31,7 +31,10 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -46,6 +49,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 public class SecurityConfiguration {
 
     final RsaKeyProperties rsaKeyProperties;
+    final CustomJwtAuthenticationConverter customJwtAuthenticationConverter;
 
     private static final String[] PUBLIC_WHITELIST = {
             "/sign-in",
@@ -68,7 +72,9 @@ public class SecurityConfiguration {
                 .cors(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(customJwtAuthenticationConverter))
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new JwtRefreshTokenFilter(tokenProvider, rsaKeyProperties), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(ex -> {
@@ -87,9 +93,11 @@ public class SecurityConfiguration {
                 .cors(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(customJwtAuthenticationConverter))
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(new JwtAccessTokenFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new JwtAccessTokenFilter(tokenProvider), BearerTokenAuthenticationFilter.class)
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .addLogoutHandler(logoutService)
@@ -105,6 +113,7 @@ public class SecurityConfiguration {
     @Bean
     @Order(3)
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity, TokenProvider tokenProvider) throws Exception {
+        BearerTokenResolver publicAwareResolver = buildPublicAwareBearerTokenResolver();
         return httpSecurity
                 .cors(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
@@ -112,15 +121,28 @@ public class SecurityConfiguration {
                         .requestMatchers(PUBLIC_WHITELIST).permitAll()
                         .anyRequest().authenticated()
                 )
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .bearerTokenResolver(publicAwareResolver)
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(customJwtAuthenticationConverter))
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(new JwtAccessTokenFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new JwtAccessTokenFilter(tokenProvider), BearerTokenAuthenticationFilter.class)
                 .exceptionHandling(ex -> {
                     ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
                     ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
                 })
                 .httpBasic(withDefaults())
                 .build();
+    }
+
+    private BearerTokenResolver buildPublicAwareBearerTokenResolver() {
+        DefaultBearerTokenResolver delegate = new DefaultBearerTokenResolver();
+        return request -> {
+            if (JwtAccessTokenFilter.isPublicEndpoint(request.getRequestURI())) {
+                return null;
+            }
+            return delegate.resolve(request);
+        };
     }
 
     @Bean

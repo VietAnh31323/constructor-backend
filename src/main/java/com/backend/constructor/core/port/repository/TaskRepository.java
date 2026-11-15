@@ -15,6 +15,8 @@ public interface TaskRepository extends BaseRepository<TaskEntity> {
 
     List<TaskEntity> getListTaskByParentId(Long parentId);
 
+    List<TaskEntity> getListTaskByParentIds(Collection<Long> parentIds);
+
     Map<Long, TaskEntity> getTaskMapByIds(Collection<Long> taskIds);
 
     List<TaskEntity> getListTaskByProjectId(Long projectId);

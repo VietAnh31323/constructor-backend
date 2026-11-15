@@ -10,6 +10,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Setter
@@ -30,6 +31,9 @@ public class ProjectEntity extends BaseEntity {
 
     private String name;
 
+    @Column(name = "customer_id")
+    private Long customerId;
+
     private String owner;
 
     private String address;
@@ -47,6 +51,12 @@ public class ProjectEntity extends BaseEntity {
 
     private LocalDate deliveryDate;
 
+    @Column(name = "actual_handover_date")
+    private LocalDate actualHandoverDate;
+
+    @Column(name = "warranty_end_date")
+    private LocalDate warrantyEndDate;
+
     private Long creatorId;
 
     private Long managerId;
@@ -61,6 +71,16 @@ public class ProjectEntity extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private ProjectState state;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "previous_state")
+    private ProjectState previousState;
+
+    @Column(name = "state_reason")
+    private String stateReason;
+
+    @Column(name = "state_changed_at")
+    private LocalDateTime stateChangedAt;
 
     @Convert(converter = UploadDtoListConverter.class)
     private List<UploadDto> contractFiles;

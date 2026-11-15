@@ -1,12 +1,12 @@
 package com.backend.constructor.app.api;
 
-import com.backend.constructor.app.dto.project.ProjectDto;
-import com.backend.constructor.app.dto.project.ProjectFilterParam;
-import com.backend.constructor.app.dto.project.ProjectOutput;
+import com.backend.constructor.app.dto.project.*;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
+
+import java.util.List;
 
 public interface ProjectApi {
     @PreAuthorize("hasAnyAuthority('PROJECT_CREATE', 'SCOPE_ADMIN')")
@@ -24,4 +24,27 @@ public interface ProjectApi {
     @PreAuthorize("hasAnyAuthority('PROJECT_VIEW', 'SCOPE_ADMIN')")
     Page<ProjectOutput> getListProject(ProjectFilterParam param,
                                        Pageable pageable);
+
+    // --- 2.09: Mở rộng vòng đời dự án, kiểm tra điều kiện & ghi log ---
+    @PreAuthorize("hasAnyAuthority('PROJECT_VIEW', 'SCOPE_ADMIN')")
+    ProjectLifecycleSummaryDto getLifecycleSummary();
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    IdResponse transitionState(Long projectId, ProjectStateTransitionDto input);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_VIEW', 'SCOPE_ADMIN')")
+    List<ProjectStateLogDto> getStateLogs(Long projectId);
+
+    // --- Biểu đồ Gantt & Tiến độ dự án ---
+    @PreAuthorize("hasAnyAuthority('PROJECT_VIEW', 'PROGRESS_VIEW', 'TASK_VIEW', 'SCOPE_ADMIN')")
+    ProjectGanttDto getProjectGantt(Long projectId);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'PROGRESS_UPDATE', 'TASK_CREATE', 'SCOPE_ADMIN')")
+    IdResponse addGanttPhase(Long projectId, ProjectGanttPhaseRequestDto input);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'PROGRESS_UPDATE', 'SCOPE_ADMIN')")
+    void deleteGanttPhase(Long projectId, Long projectProgressId);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'PROGRESS_UPDATE', 'TASK_CREATE', 'SCOPE_ADMIN')")
+    IdResponse addGanttTask(Long projectId, ProjectGanttTaskRequestDto input);
 }

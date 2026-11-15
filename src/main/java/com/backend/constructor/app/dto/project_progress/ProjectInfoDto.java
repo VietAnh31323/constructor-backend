@@ -22,6 +22,10 @@ public class ProjectInfoDto {
 
     private String name;
 
+    private Long customerId;
+
+    private CodeNameResponse customer;
+
     private String owner;
 
     private String address;

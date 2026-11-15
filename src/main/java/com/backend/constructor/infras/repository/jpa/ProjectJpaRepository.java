@@ -28,4 +28,10 @@ public interface ProjectJpaRepository extends BaseJpaRepository<ProjectEntity> {
                    OR p.supporterId IN :staffIds
             """)
     List<ProjectEntity> findAllByParticipantStaffIds(Collection<Long> staffIds);
+
+    List<ProjectEntity> findByCustomerIdOrderByIdDesc(Long customerId);
+
+    List<ProjectEntity> findByCustomerIdInOrderByIdDesc(Collection<Long> customerIds);
+
+    boolean existsByCustomerId(Long customerId);
 }

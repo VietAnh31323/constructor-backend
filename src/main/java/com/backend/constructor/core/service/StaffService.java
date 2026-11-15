@@ -444,8 +444,8 @@ public class StaffService implements StaffApi {
 
         List<StaffProjectItemDto> projectItems = new ArrayList<>();
         for (ProjectEntity proj : projectById.values()) {
-            ProjectState pState = proj.getState() != null ? proj.getState() : ProjectState.NOT_STARTED;
-            boolean pCompleted = pState == ProjectState.COMPLETED;
+            ProjectState pState = proj.getState() != null ? proj.getState() : ProjectState.RECEIVED;
+            boolean pCompleted = !pState.isActiveWorkload();
             if (pCompleted) {
                 completedProjects++;
             } else {
@@ -478,6 +478,7 @@ public class StaffService implements StaffApi {
                     .id(proj.getId())
                     .code(proj.getCode())
                     .name(proj.getName())
+                    .customerId(proj.getCustomerId())
                     .owner(proj.getOwner())
                     .address(proj.getAddress())
                     .state(pState)
@@ -492,7 +493,7 @@ public class StaffService implements StaffApi {
         }
 
         projectItems.sort(Comparator
-                .comparing((StaffProjectItemDto p) -> p.getState() == ProjectState.COMPLETED ? 1 : 0)
+                .comparing((StaffProjectItemDto p) -> (p.getState() != null && !p.getState().isActiveWorkload()) ? 1 : 0)
                 .thenComparing(p -> p.isOverdue() ? 0 : 1)
                 .thenComparing(StaffProjectItemDto::getId, Comparator.nullsLast(Comparator.reverseOrder())));
 
@@ -935,7 +936,7 @@ public class StaffService implements StaffApi {
         // 1. Dự án tham gia trực tiếp
         List<ProjectEntity> directProjects = projectRepository.getListByParticipantStaffIds(staffIdSet);
         for (ProjectEntity p : directProjects) {
-            if (p.getState() == ProjectState.COMPLETED) {
+            if (p.getState() != null && !p.getState().isActiveWorkload()) {
                 continue;
             }
             if (p.getManagerId() != null && staffIdSet.contains(p.getManagerId())) {
@@ -1026,7 +1027,7 @@ public class StaffService implements StaffApi {
                 }
                 ProjectProgressEntity pp = ppId != null ? ppMap.get(ppId) : null;
                 ProjectEntity proj = (pp != null && pp.getProjectId() != null) ? projMap.get(pp.getProjectId()) : null;
-                if (proj != null && proj.getState() != ProjectState.COMPLETED) {
+                if (proj != null && (proj.getState() == null || proj.getState().isActiveWorkload())) {
                     for (Long sId : staffIdsByTaskId.getOrDefault(task.getId(), Collections.emptySet())) {
                         activeProjectsByStaff.computeIfAbsent(sId, k -> new HashSet<>()).add(proj.getId());
                     }

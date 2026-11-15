@@ -29,6 +29,7 @@ import static com.backend.constructor.core.service.HelperService.*;
 @Transactional(readOnly = true)
 public class ProjectProgressService implements ProjectProgressApi {
     private final ProjectRepository projectRepository;
+    private final CustomerRepository customerRepository;
     private final ProjectProgressRepository projectProgressRepository;
     private final ProjectProgressTaskMapRepository projectProgressTaskMapRepository;
     private final StaffRepository staffRepository;
@@ -63,6 +64,17 @@ public class ProjectProgressService implements ProjectProgressApi {
         ProjectEntity project = projectRepository.getProjectById(id);
         Set<Long> staffIds = new HashSet<>();
         ProjectInfoDto projectInfoDto = projectMapper.toInfoDto(project);
+        if (project.getCustomerId() != null) {
+            customerRepository.findById(project.getCustomerId()).ifPresent(cust -> {
+                projectInfoDto.setCustomerId(cust.getId());
+                projectInfoDto.setCustomer(CodeNameResponse.builder()
+                        .id(cust.getId())
+                        .code(cust.getCode())
+                        .name(cust.getName())
+                        .build());
+                projectInfoDto.setOwner(cust.getName());
+            });
+        }
         addIfNotNull(staffIds, project.getCreatorId());
         addIfNotNull(staffIds, project.getManagerId());
         addIfNotNull(staffIds, project.getSupporterId());

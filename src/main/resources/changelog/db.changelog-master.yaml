@@ -35,5 +35,11 @@ databaseChangeLog:
   - include:
       file: v1.0.9/01-staff-hr-and-certificates.sql
       relativeToChangelogFile: true
+  - include:
+      file: v1.1.0/01-customer-crm-and-project-link.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v1.1.1/01-project-lifecycle-and-state-logs.sql
+      relativeToChangelogFile: true
 
 

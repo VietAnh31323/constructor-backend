@@ -46,6 +46,15 @@ public class WebConfigure implements ServletContextInitializer {
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+
+        // Cho phép Landing Page / Website bên ngoài gọi các public endpoint (/public/**)
+        CorsConfiguration publicConfig = new CorsConfiguration();
+        publicConfig.setAllowedOriginPatterns(List.of("*"));
+        publicConfig.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        publicConfig.setAllowedHeaders(List.of("*"));
+        publicConfig.setAllowCredentials(false);
+        source.registerCorsConfiguration("/public/**", publicConfig);
+
         source.registerCorsConfiguration("/**", config);
         return source;
     }

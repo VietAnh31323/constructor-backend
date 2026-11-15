@@ -2,18 +2,19 @@ package com.backend.constructor.app.dto.project;
 
 import com.backend.constructor.app.dto.upload.UploadDto;
 import com.backend.constructor.common.base.dto.response.CodeNameResponse;
+import com.backend.constructor.core.domain.enums.CustomerType;
 import com.backend.constructor.core.domain.enums.ProjectState;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -29,11 +30,20 @@ public class ProjectDto {
     @NotBlank(message = "{ERROR_0001}")
     private String name;
 
+    private Long customerId;
+
+    private CodeNameResponse customer;
+
+    private CustomerType customerType;
+
+    private String customerPhone;
+
+    private String customerTaxCode;
+
     private String owner;
 
     private String address;
 
-    @NotNull(message = "{ERROR_0001}")
     @Min(0)
     @Digits(integer = 16, fraction = 2)
     private BigDecimal contractValue;
@@ -49,6 +59,12 @@ public class ProjectDto {
 
     private LocalDate deliveryDate;
 
+    private LocalDate actualHandoverDate;
+
+    private LocalDate warrantyEndDate;
+
+    private BigDecimal progressPercent;
+
     private CodeNameResponse creator;
 
     private CodeNameResponse manager;
@@ -60,6 +76,16 @@ public class ProjectDto {
     private String note;
 
     private ProjectState state;
+
+    private ProjectState previousState;
+
+    private String stateReason;
+
+    private LocalDateTime stateChangedAt;
+
+    private List<ProjectState> allowedNextStates;
+
+    private Integer stateLogCount;
 
     private List<UploadDto> contractFiles;
 
@@ -75,8 +101,11 @@ public class ProjectDto {
     private List<ProjectLineDto> projectLines;
 
     public void trimData() {
-        this.code = StringUtils.trim(this.code);
+        this.code = StringUtils.trimToNull(this.code);
         this.name = StringUtils.trim(this.name);
-        this.note = StringUtils.trim(this.note);
+        this.owner = StringUtils.trimToNull(this.owner);
+        this.address = StringUtils.trimToNull(this.address);
+        this.note = StringUtils.trimToNull(this.note);
+        this.stateReason = StringUtils.trimToNull(this.stateReason);
     }
 }

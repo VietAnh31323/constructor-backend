@@ -1,12 +1,15 @@
 package com.backend.constructor.app.dto.project;
 
 import com.backend.constructor.common.base.dto.response.CodeNameResponse;
+import com.backend.constructor.core.domain.enums.CustomerType;
 import com.backend.constructor.core.domain.enums.PaymentStatus;
 import com.backend.constructor.core.domain.enums.ProjectState;
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -20,7 +23,15 @@ public class ProjectOutput {
 
     private String name;
 
+    private Long customerId;
+
+    private CodeNameResponse customer;
+
+    private CustomerType customerType;
+
     private String owner;
+
+    private String address;
 
     private CodeNameResponse manager;
 
@@ -34,7 +45,19 @@ public class ProjectOutput {
 
     private LocalDate deliveryDate;
 
+    private LocalDate actualHandoverDate;
+
+    private LocalDate warrantyEndDate;
+
     private ProjectState state;
+
+    private ProjectState previousState;
+
+    private String stateReason;
+
+    private LocalDateTime stateChangedAt;
+
+    private List<ProjectState> allowedNextStates;
 
     private PaymentStatus paymentStatus;
 

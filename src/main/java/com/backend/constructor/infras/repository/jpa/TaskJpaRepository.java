@@ -11,6 +11,8 @@ import java.util.List;
 public interface TaskJpaRepository extends BaseJpaRepository<TaskEntity> {
     List<TaskEntity> findAllByParentId(Long parentId);
 
+    List<TaskEntity> findAllByParentIdIn(Collection<Long> parentIds);
+
     List<TaskEntity> findAllByReviewerId(Long reviewerId);
 
     List<TaskEntity> findAllByReviewerIdIn(Collection<Long> reviewerIds);

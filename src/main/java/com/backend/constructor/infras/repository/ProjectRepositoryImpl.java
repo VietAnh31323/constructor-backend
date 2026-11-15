@@ -14,7 +14,9 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -35,18 +37,33 @@ public class ProjectRepositoryImpl extends JpaRepositoryAdapter<ProjectEntity> i
 
     @Override
     public Page<ProjectEntity> getPageProject(ProjectFilterParam param, Pageable pageable) {
-        String search = StringUtils.trimToNull(param.getSearch());
+        String search = param != null ? StringUtils.trimToNull(param.getSearch()) : null;
+        Pageable effectivePageable = (pageable != null && pageable.getSort().isUnsorted())
+                ? PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "id"))
+                : pageable;
+
         FilterBuilder filterBuilder = Filter.builder()
                 .search()
                 .isContains(ProjectEntity_.CODE, search, FilterFlag.UNACCENT_CASE_SENSITIVE)
-                .isContains(ProjectEntity_.NAME, search, FilterFlag.UNACCENT_CASE_SENSITIVE);
-        if (param.getCategoryId() != null) {
+                .isContains(ProjectEntity_.NAME, search, FilterFlag.UNACCENT_CASE_SENSITIVE)
+                .isContains(ProjectEntity_.OWNER, search, FilterFlag.UNACCENT_CASE_SENSITIVE);
+
+        if (param != null && param.getCategoryId() != null) {
             filterBuilder
                     .leftJoin(ProjectEntity_.ID, new FilterJoiner(ProjectCategoryMapEntity.class, ProjectCategoryMapEntity_.PROJECT_ID))
-                    .isEqual(ProjectCategoryMapEntity_.CATEGORY_ID, param.getCategoryId());
+                    .filter()
+                    .isEqual(ProjectCategoryMapEntity_.CATEGORY_ID, param.getCategoryId())
+                    .isEqual(ProjectEntity_.CUSTOMER_ID, param.getCustomerId())
+                    .isEqual(ProjectEntity_.STATE, param.getState());
+        } else if (param != null) {
+            filterBuilder
+                    .filter()
+                    .isEqual(ProjectEntity_.CUSTOMER_ID, param.getCustomerId())
+                    .isEqual(ProjectEntity_.STATE, param.getState());
         }
+
         Filter<ProjectEntity> filter = filterBuilder
-                .pageable(pageable)
+                .pageable(effectivePageable)
                 .withContext(entityManager)
                 .build(ProjectEntity.class);
         return filter.getPage();
@@ -82,5 +99,29 @@ public class ProjectRepositoryImpl extends JpaRepositoryAdapter<ProjectEntity> i
             return Collections.emptyList();
         }
         return projectJpaRepository.findAllByParticipantStaffIds(staffIds);
+    }
+
+    @Override
+    public List<ProjectEntity> getListByCustomerId(Long customerId) {
+        if (customerId == null) {
+            return Collections.emptyList();
+        }
+        return projectJpaRepository.findByCustomerIdOrderByIdDesc(customerId);
+    }
+
+    @Override
+    public List<ProjectEntity> getListByCustomerIds(Collection<Long> customerIds) {
+        if (CollectionUtils.isEmpty(customerIds)) {
+            return Collections.emptyList();
+        }
+        return projectJpaRepository.findByCustomerIdInOrderByIdDesc(customerIds);
+    }
+
+    @Override
+    public boolean existsByCustomerId(Long customerId) {
+        if (customerId == null) {
+            return false;
+        }
+        return projectJpaRepository.existsByCustomerId(customerId);
     }
 }
