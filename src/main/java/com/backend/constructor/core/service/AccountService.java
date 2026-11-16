@@ -112,7 +112,7 @@ public class AccountService implements AccountApi {
     @Override
     @Transactional
     public void changePassword(ChangePasswordDto changePasswordDto) {
-        if (!Objects.equals(changePasswordDto.newPassword(), changePasswordDto.confirmPassword())) {
+        if (changePasswordDto.confirmPassword() != null && !Objects.equals(changePasswordDto.newPassword(), changePasswordDto.confirmPassword())) {
             throw BusinessException.exception("CST017");
         }
         AccountEntity accountEntity = accountRepository.findAnyByUsername(HelperService.getUsernameLogin())

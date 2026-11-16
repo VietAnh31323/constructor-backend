@@ -12,5 +12,7 @@ import java.util.Optional;
 public interface AccountStaffMapJpaRepository extends BaseJpaRepository<AccountStaffMapEntity> {
     List<AccountStaffMapEntity> findAllByStaffIdIn(Collection<Long> staffIds);
 
+    List<AccountStaffMapEntity> findAllByAccountIdIn(Collection<Long> accountIds);
+
     Optional<AccountStaffMapEntity> findFirstByAccountId(Long accountId);
 }

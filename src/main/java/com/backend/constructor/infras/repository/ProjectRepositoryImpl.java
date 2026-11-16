@@ -14,6 +14,7 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -37,11 +38,38 @@ public class ProjectRepositoryImpl extends JpaRepositoryAdapter<ProjectEntity> i
 
     @Override
     public Page<ProjectEntity> getPageProject(ProjectFilterParam param, Pageable pageable) {
-        String search = param != null ? StringUtils.trimToNull(param.getSearch()) : null;
+        return getPageProject(param, pageable, null);
+    }
+
+    @Override
+    public Page<ProjectEntity> getPageProject(ProjectFilterParam param, Pageable pageable, Collection<Long> scopedProjectIds) {
         Pageable effectivePageable = (pageable != null && pageable.getSort().isUnsorted())
                 ? PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "id"))
                 : pageable;
 
+        // Nếu nhân viên có phân quyền dữ liệu nhưng chưa được gán vào bất kỳ dự án nào -> trả về trang rỗng
+        if (scopedProjectIds != null && scopedProjectIds.isEmpty()) {
+            return new PageImpl<>(Collections.emptyList(), effectivePageable, 0);
+        }
+
+        if (scopedProjectIds != null) {
+            String search = param != null ? StringUtils.trimToNull(param.getSearch()) : null;
+            Long customerId = param != null ? param.getCustomerId() : null;
+            com.backend.constructor.core.domain.enums.ProjectState state = param != null ? param.getState() : null;
+            Long categoryId = param != null ? param.getCategoryId() : null;
+
+            return projectJpaRepository.findPageWithScope(
+                    scopedProjectIds,
+                    false,
+                    search,
+                    customerId,
+                    state,
+                    categoryId,
+                    effectivePageable
+            );
+        }
+
+        String search = param != null ? StringUtils.trimToNull(param.getSearch()) : null;
         FilterBuilder filterBuilder = Filter.builder()
                 .search()
                 .isContains(ProjectEntity_.CODE, search, FilterFlag.UNACCENT_CASE_SENSITIVE)

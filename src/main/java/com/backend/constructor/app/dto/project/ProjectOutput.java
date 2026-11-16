@@ -62,4 +62,9 @@ public class ProjectOutput {
     private PaymentStatus paymentStatus;
 
     private BigDecimal progressPercent;
+
+    // Danh sách vắn tắt vai trò thành viên để hiển thị trên bảng
+    private Integer memberCount;
+
+    private Integer contractCount;
 }

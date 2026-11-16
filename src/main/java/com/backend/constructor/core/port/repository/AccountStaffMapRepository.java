@@ -14,6 +14,8 @@ public interface AccountStaffMapRepository extends BaseRepository<AccountStaffMa
 
     List<AccountStaffMapEntity> getListByStaffIds(Collection<Long> staffIds);
 
+    List<AccountStaffMapEntity> getListByAccountIds(Collection<Long> accountIds);
+
     Optional<AccountStaffMapEntity> findOptionalByAccountId(Long accountId);
 
     void deleteAllInBatch(List<AccountStaffMapEntity> accountStaffMapEntities);

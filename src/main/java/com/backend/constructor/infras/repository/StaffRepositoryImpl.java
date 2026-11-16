@@ -9,7 +9,9 @@ import com.backend.constructor.common.base.repository.filter.FilterJoiner;
 import com.backend.constructor.common.enums.AccountStatus;
 import com.backend.constructor.common.error.BusinessException;
 import com.backend.constructor.core.domain.entity.*;
+import com.backend.constructor.core.port.repository.AccountStaffMapRepository;
 import com.backend.constructor.core.port.repository.StaffRepository;
+import com.backend.constructor.infras.repository.jpa.StaffJpaRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -19,12 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -32,6 +29,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> implements StaffRepository {
     private final EntityManager entityManager;
+    private final StaffJpaRepository staffJpaRepository;
+    private final AccountStaffMapRepository accountStaffMapRepository;
 
     @Override
     public StaffEntity getStaffById(Long id) {
@@ -87,23 +86,21 @@ public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> imple
         if (accountIds == null || accountIds.isEmpty()) {
             return Collections.emptyList();
         }
-        Filter<StaffEntity> filter = Filter.builder()
-                .select(StaffEntity_.ID)
-                .select(StaffEntity_.CODE)
-                .select(StaffEntity_.NAME)
-                .select(StaffEntity_.FIRST_NAME)
-                .select(StaffEntity_.LAST_NAME)
-                .select(StaffEntity_.BIRTH_DATE)
-                .select(StaffEntity_.PHONE)
-                .select(StaffEntity_.POSITION)
-                .select(StaffEntity_.AVATAR)
-                .leftJoin(StaffEntity_.ID, new FilterJoiner(AccountStaffMapEntity.class, AccountStaffMapEntity_.STAFF_ID))
-                .select(AccountStaffMapEntity_.ACCOUNT_ID)
-                .filter()
-                .isIn(AccountStaffMapEntity_.ACCOUNT_ID, accountIds)
-                .withContext(entityManager)
-                .build(StaffEntity.class, StaffEntity.class);
-        return filter.getList();
+        List<AccountStaffMapEntity> maps = accountStaffMapRepository.getListByAccountIds(accountIds);
+        if (maps.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<Long, Long> staffIdToAccountId = new HashMap<>();
+        for (AccountStaffMapEntity m : maps) {
+            if (m.getStaffId() != null && m.getAccountId() != null) {
+                staffIdToAccountId.putIfAbsent(m.getStaffId(), m.getAccountId());
+            }
+        }
+        List<StaffEntity> staffs = findAllByIds(new ArrayList<>(staffIdToAccountId.keySet()));
+        for (StaffEntity staff : staffs) {
+            staff.setAccountId(staffIdToAccountId.get(staff.getId()));
+        }
+        return staffs;
     }
 
     @Override
@@ -124,19 +121,23 @@ public class StaffRepositoryImpl extends JpaRepositoryAdapter<StaffEntity> imple
 
     @Override
     public Optional<StaffEntity> findOptionalStaffByAccountId(Long accountId) {
-        Filter<StaffEntity> filter = Filter.builder()
-                .leftJoin(StaffEntity_.ID, new FilterJoiner(AccountStaffMapEntity.class, AccountStaffMapEntity_.STAFF_ID))
-                .thenLeftJoin(AccountStaffMapEntity_.ACCOUNT_ID, new FilterJoiner(AccountEntity.class, AccountEntity_.ID))
-                .filter()
-                .isEqual(AccountEntity_.ID, accountId)
-                .withContext(entityManager)
-                .build(StaffEntity.class);
-        List<StaffEntity> staffEntities = filter.getList();
-        return staffEntities.isEmpty() ? Optional.empty() : Optional.of(staffEntities.getFirst());
+        if (accountId == null) {
+            return Optional.empty();
+        }
+        Optional<AccountStaffMapEntity> mapOpt = accountStaffMapRepository.findOptionalByAccountId(accountId);
+        if (mapOpt.isEmpty() || mapOpt.get().getStaffId() == null) {
+            return Optional.empty();
+        }
+        Optional<StaffEntity> staffOpt = findById(mapOpt.get().getStaffId());
+        staffOpt.ifPresent(s -> s.setAccountId(accountId));
+        return staffOpt;
     }
 
     @Override
     public Map<Long, StaffEntity> getMapStaffEntityByIds(Set<Long> staffIds) {
+        if (staffIds == null || staffIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
         return findAllByIds(staffIds).stream()
                 .collect(Collectors.toMap(StaffEntity::getId, Function.identity()));
     }

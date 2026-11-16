@@ -93,6 +93,12 @@ public class ProjectDto {
 
     private List<UploadDto> projectImages;
 
+    // 2.10: Thành viên dự án
+    private List<ProjectMemberDto> members;
+
+    // 2.11: Hợp đồng & Phụ lục
+    private List<ContractDto> contracts;
+
     @Valid
     @NotEmpty(message = "{ERROR_0001}")
     private List<ProjectCategoryMapDto> projectCategoryMaps;
@@ -102,9 +108,10 @@ public class ProjectDto {
 
     public void trimData() {
         this.code = StringUtils.trimToNull(this.code);
-        this.name = StringUtils.trim(this.name);
+        this.name = StringUtils.trimToNull(this.name);
         this.owner = StringUtils.trimToNull(this.owner);
         this.address = StringUtils.trimToNull(this.address);
+        this.description = StringUtils.trimToNull(this.description);
         this.note = StringUtils.trimToNull(this.note);
         this.stateReason = StringUtils.trimToNull(this.stateReason);
     }

@@ -40,6 +40,14 @@ public class AccountStaffMapRepositoryImpl extends JpaRepositoryAdapter<AccountS
     }
 
     @Override
+    public List<AccountStaffMapEntity> getListByAccountIds(Collection<Long> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return accountStaffMapJpaRepository.findAllByAccountIdIn(accountIds);
+    }
+
+    @Override
     public Optional<AccountStaffMapEntity> findOptionalByAccountId(Long accountId) {
         if (accountId == null) {
             return Optional.empty();

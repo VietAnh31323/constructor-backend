@@ -98,4 +98,94 @@ public class ProjectController implements ProjectApi {
                                    @RequestBody @Valid ProjectGanttTaskRequestDto input) {
         return projectService.addGanttTask(projectId, input);
     }
+
+    // ==================== 2.10: THÀNH VIÊN DỰ ÁN & PHÂN QUYỀN DỮ LIỆU ====================
+    @Override
+    @GetMapping("/{projectId}/members")
+    public List<ProjectMemberDto> getProjectMembers(@PathVariable Long projectId) {
+        return projectService.getProjectMembers(projectId);
+    }
+
+    @Override
+    @PostMapping("/{projectId}/members")
+    public IdResponse addProjectMember(@PathVariable Long projectId,
+                                       @RequestBody @Valid ProjectMemberDto input) {
+        return projectService.addProjectMember(projectId, input);
+    }
+
+    @Override
+    @PutMapping("/{projectId}/members/{memberId}")
+    public IdResponse updateProjectMember(@PathVariable Long projectId,
+                                          @PathVariable Long memberId,
+                                          @RequestBody @Valid ProjectMemberDto input) {
+        return projectService.updateProjectMember(projectId, memberId, input);
+    }
+
+    @Override
+    @DeleteMapping("/{projectId}/members/{memberId}")
+    public void removeProjectMember(@PathVariable Long projectId,
+                                    @PathVariable Long memberId) {
+        projectService.removeProjectMember(projectId, memberId);
+    }
+
+    // ==================== 2.11: HỢP ĐỒNG & PHỤ LỤC HỢP ĐỒNG ====================
+    @Override
+    @GetMapping("/{projectId}/contracts")
+    public List<ContractDto> getProjectContracts(@PathVariable Long projectId) {
+        return projectService.getProjectContracts(projectId);
+    }
+
+    @Override
+    @GetMapping("/{projectId}/contracts/{contractId}")
+    public ContractDto getContractDetail(@PathVariable Long projectId,
+                                         @PathVariable Long contractId) {
+        return projectService.getContractDetail(projectId, contractId);
+    }
+
+    @Override
+    @PostMapping("/{projectId}/contracts")
+    public IdResponse createContract(@PathVariable Long projectId,
+                                     @RequestBody @Valid ContractDto input) {
+        return projectService.createContract(projectId, input);
+    }
+
+    @Override
+    @PutMapping("/{projectId}/contracts/{contractId}")
+    public IdResponse updateContract(@PathVariable Long projectId,
+                                     @PathVariable Long contractId,
+                                     @RequestBody @Valid ContractDto input) {
+        return projectService.updateContract(projectId, contractId, input);
+    }
+
+    @Override
+    @DeleteMapping("/{projectId}/contracts/{contractId}")
+    public void deleteContract(@PathVariable Long projectId,
+                               @PathVariable Long contractId) {
+        projectService.deleteContract(projectId, contractId);
+    }
+
+    @Override
+    @PostMapping("/{projectId}/contracts/{contractId}/addendums")
+    public IdResponse addContractAddendum(@PathVariable Long projectId,
+                                          @PathVariable Long contractId,
+                                          @RequestBody @Valid ContractAddendumDto input) {
+        return projectService.addContractAddendum(projectId, contractId, input);
+    }
+
+    @Override
+    @PutMapping("/{projectId}/contracts/{contractId}/addendums/{addendumId}")
+    public IdResponse updateContractAddendum(@PathVariable Long projectId,
+                                             @PathVariable Long contractId,
+                                             @PathVariable Long addendumId,
+                                             @RequestBody @Valid ContractAddendumDto input) {
+        return projectService.updateContractAddendum(projectId, contractId, addendumId, input);
+    }
+
+    @Override
+    @DeleteMapping("/{projectId}/contracts/{contractId}/addendums/{addendumId}")
+    public void deleteContractAddendum(@PathVariable Long projectId,
+                                       @PathVariable Long contractId,
+                                       @PathVariable Long addendumId) {
+        projectService.deleteContractAddendum(projectId, contractId, addendumId);
+    }
 }

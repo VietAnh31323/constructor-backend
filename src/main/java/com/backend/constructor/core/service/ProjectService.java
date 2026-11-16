@@ -11,6 +11,12 @@ import com.backend.constructor.core.domain.constant.Constants;
 import com.backend.constructor.core.domain.entity.*;
 import com.backend.constructor.core.domain.enums.*;
 import com.backend.constructor.core.port.mapper.ProjectLineMapper;
+import com.backend.constructor.core.port.mapper.ProjectMemberMapper;
+import com.backend.constructor.core.port.mapper.ContractMapper;
+import com.backend.constructor.core.port.mapper.ContractAddendumMapper;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.backend.constructor.core.port.mapper.ProjectMapper;
 import com.backend.constructor.core.port.repository.*;
 import com.backend.constructor.user.security.SecurityUtils;
@@ -54,6 +60,15 @@ public class ProjectService implements ProjectApi {
     private final GenerateCodeService generateCodeService;
     private final UniqueValidationService uniqueValidationService;
     private final AuditLogService auditLogService;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectMemberMapper projectMemberMapper;
+    private final ContractRepository contractRepository;
+    private final ContractMapper contractMapper;
+    private final ContractAddendumRepository contractAddendumRepository;
+    private final ContractAddendumMapper contractAddendumMapper;
+    private final AccountRepository accountRepository;
+    private final AccountStaffMapRepository accountStaffMapRepository;
+
 
     @Override
     @Transactional
@@ -94,6 +109,7 @@ public class ProjectService implements ProjectApi {
 
         recordProjectStateLog(projectEntity, null, initialState, projectEntity.getStateReason());
         syncCustomerPipelineOnProjectSave(linkedCustomer, initialState);
+        syncProjectMembersOnCreate(projectEntity, input.getMembers());
         return IdResponse.builder().id(projectEntity.getId()).build();
     }
 
@@ -165,6 +181,7 @@ public class ProjectService implements ProjectApi {
         }
 
         syncCustomerPipelineOnProjectSave(linkedCustomer, targetState);
+        syncProjectMembersOnUpdate(projectEntity, input.getMembers());
         return IdResponse.builder().id(projectEntity.getId()).build();
     }
 
@@ -177,6 +194,9 @@ public class ProjectService implements ProjectApi {
         if (!logs.isEmpty()) {
             projectStateLogRepository.deleteAll(logs);
         }
+        projectMemberRepository.deleteAllByProjectId(id);
+        contractAddendumRepository.deleteAllByProjectId(id);
+        contractRepository.deleteAllByProjectId(id);
         projectRepository.delete(projectEntity);
     }
 
@@ -221,13 +241,16 @@ public class ProjectService implements ProjectApi {
         List<ProjectCategoryMapEntity> projectCategoryMapEntities = projectCategoryMapRepository.getListByProjectId(projectEntity.getId());
         setProjectCategoryMaps(projectDto, projectCategoryMapEntities);
         setProjectCategoryLines(projectDto, projectLineEntities);
+        checkProjectAccessScope(id);
+        enrichProjectDetailMembersAndContracts(projectDto, id);
         return projectDto;
     }
 
     @Override
     public Page<ProjectOutput> getListProject(ProjectFilterParam param,
                                               Pageable pageable) {
-        Page<ProjectEntity> projectEntities = projectRepository.getPageProject(param, pageable);
+        Collection<Long> scopedProjectIds = resolveScopedProjectIds();
+        Page<ProjectEntity> projectEntities = projectRepository.getPageProject(param, pageable, scopedProjectIds);
         Set<Long> staffIds = new HashSet<>();
         Set<Long> customerIds = new HashSet<>();
         for (ProjectEntity projectEntity : projectEntities) {
@@ -247,7 +270,10 @@ public class ProjectService implements ProjectApi {
 
     @Override
     public ProjectLifecycleSummaryDto getLifecycleSummary() {
-        List<ProjectEntity> allProjects = projectRepository.findAll();
+        Collection<Long> scopedProjectIds = resolveScopedProjectIds();
+        List<ProjectEntity> allProjects = scopedProjectIds == null
+                ? projectRepository.findAll()
+                : (scopedProjectIds.isEmpty() ? Collections.emptyList() : projectRepository.findAllByIds(new ArrayList<>(scopedProjectIds)));
         Map<ProjectState, Long> countsByState = new EnumMap<>(ProjectState.class);
         Map<ProjectState, BigDecimal> valuesByState = new EnumMap<>(ProjectState.class);
 
@@ -1320,6 +1346,8 @@ public class ProjectService implements ProjectApi {
             }
         }
         projectOutput.setPaymentStatus(getPaymentStatus(entity.getRemainingAmount()));
+        projectOutput.setMemberCount(projectMemberRepository.getListByProjectId(entity.getId()).size());
+        projectOutput.setContractCount(contractRepository.getListByProjectId(entity.getId()).size());
         return projectOutput;
     }
 
@@ -1336,4 +1364,579 @@ public class ProjectService implements ProjectApi {
         BigDecimal advance = contractAdvance != null ? contractAdvance : BigDecimal.ZERO;
         return value.subtract(advance).setScale(2, RoundingMode.HALF_UP);
     }
+
+    // =========================================================================
+    // 2.10: THÀNH VIÊN DỰ ÁN & PHÂN QUYỀN DỮ LIỆU
+    // =========================================================================
+
+    private Collection<Long> resolveScopedProjectIds() {
+        if (isAdminUser()) {
+            return null; // Admin: toàn quyền xem tất cả dự án
+        }
+        Long currentStaffId = getCurrentStaffId();
+        if (currentStaffId == null) {
+            return null;
+        }
+        List<ProjectEntity> participatingProjects = projectRepository.getListByParticipantStaffId(currentStaffId);
+        return participatingProjects.stream().map(ProjectEntity::getId).collect(Collectors.toSet());
+    }
+
+    private void checkProjectAccessScope(Long projectId) {
+        if (projectId == null || isAdminUser()) {
+            return;
+        }
+        Long currentStaffId = getCurrentStaffId();
+        if (currentStaffId == null) {
+            return;
+        }
+        boolean isParticipant = projectMemberRepository.findByProjectIdAndStaffId(projectId, currentStaffId).isPresent();
+        if (!isParticipant) {
+            ProjectEntity p = projectRepository.getProjectById(projectId);
+            isParticipant = Objects.equals(p.getCreatorId(), currentStaffId)
+                    || Objects.equals(p.getManagerId(), currentStaffId)
+                    || Objects.equals(p.getSupporterId(), currentStaffId);
+        }
+        if (!isParticipant) {
+            throw BusinessException.exception("CST050");
+        }
+    }
+
+    private boolean isAdminUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getAuthorities() == null) {
+            return false;
+        }
+        return auth.getAuthorities().stream().anyMatch(a -> {
+            String val = a.getAuthority();
+            return "ROLE_ADMIN".equalsIgnoreCase(val)
+                    || "ADMIN".equalsIgnoreCase(val)
+                    || "SCOPE_ADMIN".equalsIgnoreCase(val);
+        });
+    }
+
+    private Long getCurrentStaffId() {
+        Optional<String> loginOpt = SecurityUtils.getCurrentUserLogin();
+        if (loginOpt.isEmpty() || StringUtils.isBlank(loginOpt.get())) {
+            return null;
+        }
+        Optional<AccountEntity> accountOpt = accountRepository.findByUsername(loginOpt.get());
+        if (accountOpt.isEmpty()) {
+            return null;
+        }
+        Optional<AccountStaffMapEntity> mapOpt = accountStaffMapRepository.findOptionalByAccountId(accountOpt.get().getId());
+        return mapOpt.map(AccountStaffMapEntity::getStaffId).orElse(null);
+    }
+
+    private void enrichProjectDetailMembersAndContracts(ProjectDto projectDto, Long projectId) {
+        List<ProjectMemberDto> members = getProjectMembers(projectId);
+        projectDto.setMembers(members);
+        List<ContractDto> contracts = getProjectContracts(projectId);
+        projectDto.setContracts(contracts);
+    }
+
+    private void syncProjectMembersOnCreate(ProjectEntity projectEntity, List<ProjectMemberDto> members) {
+        Long projectId = projectEntity.getId();
+        if (members != null && !members.isEmpty()) {
+            for (ProjectMemberDto m : members) {
+                if (m.getStaffId() == null || m.getMemberRole() == null) continue;
+                ProjectMemberEntity entity = ProjectMemberEntity.builder()
+                        .projectId(projectId)
+                        .staffId(m.getStaffId())
+                        .memberRole(m.getMemberRole())
+                        .isPrimary(Boolean.TRUE.equals(m.getIsPrimary()))
+                        .joinedDate(m.getJoinedDate() != null ? m.getJoinedDate() : LocalDate.now())
+                        .note(m.getNote())
+                        .build();
+                projectMemberRepository.save(entity);
+            }
+        }
+        ensureKeyProjectMembers(projectEntity);
+    }
+
+    private void syncProjectMembersOnUpdate(ProjectEntity projectEntity, List<ProjectMemberDto> members) {
+        Long projectId = projectEntity.getId();
+        if (members != null) {
+            for (ProjectMemberDto m : members) {
+                if (m.getStaffId() == null || m.getMemberRole() == null) continue;
+                Optional<ProjectMemberEntity> existingOpt = projectMemberRepository.findByProjectIdAndStaffId(projectId, m.getStaffId());
+                if (existingOpt.isPresent()) {
+                    ProjectMemberEntity ex = existingOpt.get();
+                    ex.setMemberRole(m.getMemberRole());
+                    if (m.getIsPrimary() != null) ex.setIsPrimary(m.getIsPrimary());
+                    if (m.getJoinedDate() != null) ex.setJoinedDate(m.getJoinedDate());
+                    if (m.getNote() != null) ex.setNote(m.getNote());
+                    projectMemberRepository.save(ex);
+                } else {
+                    ProjectMemberEntity entity = ProjectMemberEntity.builder()
+                            .projectId(projectId)
+                            .staffId(m.getStaffId())
+                            .memberRole(m.getMemberRole())
+                            .isPrimary(Boolean.TRUE.equals(m.getIsPrimary()))
+                            .joinedDate(m.getJoinedDate() != null ? m.getJoinedDate() : LocalDate.now())
+                            .note(m.getNote())
+                            .build();
+                    projectMemberRepository.save(entity);
+                }
+            }
+        }
+        ensureKeyProjectMembers(projectEntity);
+    }
+
+    private void ensureKeyProjectMembers(ProjectEntity projectEntity) {
+        Long projectId = projectEntity.getId();
+        if (projectEntity.getManagerId() != null) {
+            if (projectMemberRepository.findByProjectIdAndStaffId(projectId, projectEntity.getManagerId()).isEmpty()) {
+                projectMemberRepository.save(ProjectMemberEntity.builder()
+                        .projectId(projectId)
+                        .staffId(projectEntity.getManagerId())
+                        .memberRole(ProjectMemberRole.PROJECT_MANAGER)
+                        .isPrimary(true)
+                        .joinedDate(LocalDate.now())
+                        .build());
+            }
+        }
+        if (projectEntity.getCreatorId() != null) {
+            if (projectMemberRepository.findByProjectIdAndStaffId(projectId, projectEntity.getCreatorId()).isEmpty()) {
+                projectMemberRepository.save(ProjectMemberEntity.builder()
+                        .projectId(projectId)
+                        .staffId(projectEntity.getCreatorId())
+                        .memberRole(ProjectMemberRole.CREATOR)
+                        .isPrimary(false)
+                        .joinedDate(LocalDate.now())
+                        .build());
+            }
+        }
+        if (projectEntity.getSupporterId() != null) {
+            if (projectMemberRepository.findByProjectIdAndStaffId(projectId, projectEntity.getSupporterId()).isEmpty()) {
+                projectMemberRepository.save(ProjectMemberEntity.builder()
+                        .projectId(projectId)
+                        .staffId(projectEntity.getSupporterId())
+                        .memberRole(ProjectMemberRole.SUPPORTER)
+                        .isPrimary(false)
+                        .joinedDate(LocalDate.now())
+                        .build());
+            }
+        }
+    }
+
+    @Override
+    public List<ProjectMemberDto> getProjectMembers(Long projectId) {
+        List<ProjectMemberEntity> memberEntities = projectMemberRepository.getListByProjectId(projectId);
+        if (memberEntities.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Set<Long> staffIds = memberEntities.stream().map(ProjectMemberEntity::getStaffId).collect(Collectors.toSet());
+        List<StaffEntity> staffEntities = staffRepository.findAllByIds(new ArrayList<>(staffIds));
+        Map<Long, StaffEntity> staffMap = staffEntities.stream().collect(Collectors.toMap(StaffEntity::getId, s -> s));
+
+        return memberEntities.stream().map(entity -> {
+            ProjectMemberDto dto = projectMemberMapper.toDto(entity);
+            dto.setMemberRoleLabel(entity.getMemberRole() != null ? entity.getMemberRole().getLabel() : "");
+            StaffEntity staff = staffMap.get(entity.getStaffId());
+            if (staff != null) {
+                String fullName = (StringUtils.trimToEmpty(staff.getLastName()) + " " + StringUtils.trimToEmpty(staff.getFirstName())).trim();
+                dto.setStaff(CodeNameResponse.builder()
+                        .id(staff.getId())
+                        .code(staff.getCode())
+                        .name(fullName)
+                        .build());
+                dto.setStaffCode(staff.getCode());
+                dto.setStaffName(fullName);
+                dto.setStaffPhone(staff.getPhone());
+                dto.setStaffEmail(staff.getEmail());
+                dto.setStaffDepartment(staff.getDepartment() != null ? staff.getDepartment().getLabel() : "");
+                dto.setStaffPosition(staff.getPosition() != null ? staff.getPosition().getLabel() : "");
+            }
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public IdResponse addProjectMember(Long projectId, ProjectMemberDto input) {
+        ProjectEntity project = projectRepository.getProjectById(projectId);
+        StaffEntity staff = staffRepository.findById(input.getStaffId())
+                .orElseThrow(() -> BusinessException.exception("CST002"));
+
+        Optional<ProjectMemberEntity> existing = projectMemberRepository.findByProjectIdAndStaffId(projectId, input.getStaffId());
+        if (existing.isPresent() && existing.get().getMemberRole() == input.getMemberRole()) {
+            throw BusinessException.exception("CST049");
+        }
+
+        ProjectMemberEntity entity = ProjectMemberEntity.builder()
+                .projectId(projectId)
+                .staffId(input.getStaffId())
+                .memberRole(input.getMemberRole())
+                .isPrimary(Boolean.TRUE.equals(input.getIsPrimary()))
+                .joinedDate(input.getJoinedDate() != null ? input.getJoinedDate() : LocalDate.now())
+                .note(StringUtils.trimToNull(input.getNote()))
+                .build();
+        projectMemberRepository.save(entity);
+
+        if (entity.getMemberRole() == ProjectMemberRole.PROJECT_MANAGER && Boolean.TRUE.equals(entity.getIsPrimary())) {
+            project.setManagerId(staff.getId());
+            projectRepository.save(project);
+        }
+
+        auditLogService.logExplicit(
+                "ADD_PROJECT_MEMBER",
+                "PROJECT",
+                "ProjectMemberEntity",
+                String.valueOf(entity.getId()),
+                null,
+                Map.of("staffId", staff.getId(), "role", entity.getMemberRole().name()),
+                "Thêm thành viên " + staff.getCode() + " vào dự án " + project.getCode() + " vai trò " + entity.getMemberRole().getLabel(),
+                null
+        );
+
+        return IdResponse.builder().id(entity.getId()).build();
+    }
+
+    @Override
+    @Transactional
+    public IdResponse updateProjectMember(Long projectId, Long memberId, ProjectMemberDto input) {
+        ProjectMemberEntity entity = projectMemberRepository.findById(memberId)
+                .orElseThrow(() -> BusinessException.exception("CST048"));
+        if (!Objects.equals(entity.getProjectId(), projectId)) {
+            throw BusinessException.exception("CST048");
+        }
+        if (input.getMemberRole() != null) {
+            entity.setMemberRole(input.getMemberRole());
+        }
+        if (input.getIsPrimary() != null) {
+            entity.setIsPrimary(input.getIsPrimary());
+        }
+        if (input.getJoinedDate() != null) {
+            entity.setJoinedDate(input.getJoinedDate());
+        }
+        if (input.getNote() != null) {
+            entity.setNote(StringUtils.trimToNull(input.getNote()));
+        }
+        projectMemberRepository.save(entity);
+
+        if (entity.getMemberRole() == ProjectMemberRole.PROJECT_MANAGER && Boolean.TRUE.equals(entity.getIsPrimary())) {
+            ProjectEntity project = projectRepository.getProjectById(projectId);
+            project.setManagerId(entity.getStaffId());
+            projectRepository.save(project);
+        }
+
+        return IdResponse.builder().id(entity.getId()).build();
+    }
+
+    @Override
+    @Transactional
+    public void removeProjectMember(Long projectId, Long memberId) {
+        ProjectMemberEntity entity = projectMemberRepository.findById(memberId)
+                .orElseThrow(() -> BusinessException.exception("CST048"));
+        if (!Objects.equals(entity.getProjectId(), projectId)) {
+            throw BusinessException.exception("CST048");
+        }
+        projectMemberRepository.delete(entity);
+    }
+
+    // =========================================================================
+    // 2.11: HỢP ĐỒNG & PHỤ LỤC HỢP ĐỒNG
+    // =========================================================================
+
+    @Override
+    public List<ContractDto> getProjectContracts(Long projectId) {
+        List<ContractEntity> contractEntities = contractRepository.getListByProjectId(projectId);
+        if (contractEntities.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Long> contractIds = contractEntities.stream().map(ContractEntity::getId).toList();
+        List<ContractAddendumEntity> addendums = contractAddendumRepository.getListByContractIds(contractIds);
+        Map<Long, List<ContractAddendumEntity>> addendumMap = addendums.stream()
+                .collect(Collectors.groupingBy(ContractAddendumEntity::getContractId));
+
+        return contractEntities.stream().map(c -> {
+            ContractDto dto = contractMapper.toDto(c);
+            dto.setContractTypeLabel(c.getContractType() != null ? c.getContractType().getLabel() : "");
+            dto.setStatusLabel(c.getStatus() != null ? c.getStatus().getLabel() : "");
+
+            List<ContractAddendumEntity> cAddendums = addendumMap.getOrDefault(c.getId(), Collections.emptyList());
+            List<ContractAddendumDto> addendumDtos = cAddendums.stream().map(a -> {
+                ContractAddendumDto aDto = contractAddendumMapper.toDto(a);
+                aDto.setAdjustmentTypeLabel(a.getAdjustmentType() != null ? a.getAdjustmentType().getLabel() : "");
+                return aDto;
+            }).collect(Collectors.toList());
+            dto.setAddendums(addendumDtos);
+            dto.setTotalAddendumCount(BigDecimal.valueOf(addendumDtos.size()));
+
+            BigDecimal totalAdj = c.getValueAfterTax() != null ? c.getValueAfterTax() : BigDecimal.ZERO;
+            for (ContractAddendumEntity a : cAddendums) {
+                BigDecimal aVal = a.getValueAfterTax() != null ? a.getValueAfterTax() : BigDecimal.ZERO;
+                if (a.getAdjustmentType() == AddendumAdjustmentType.INCREASE) {
+                    totalAdj = totalAdj.add(aVal);
+                } else if (a.getAdjustmentType() == AddendumAdjustmentType.DECREASE) {
+                    totalAdj = totalAdj.subtract(aVal);
+                }
+            }
+            dto.setTotalAdjustedValue(totalAdj.setScale(2, RoundingMode.HALF_UP));
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public ContractDto getContractDetail(Long projectId, Long contractId) {
+        ContractEntity c = contractRepository.findById(contractId)
+                .orElseThrow(() -> BusinessException.exception("CST051"));
+        if (!Objects.equals(c.getProjectId(), projectId)) {
+            throw BusinessException.exception("CST051");
+        }
+        ContractDto dto = contractMapper.toDto(c);
+        dto.setContractTypeLabel(c.getContractType() != null ? c.getContractType().getLabel() : "");
+        dto.setStatusLabel(c.getStatus() != null ? c.getStatus().getLabel() : "");
+
+        List<ContractAddendumEntity> cAddendums = contractAddendumRepository.getListByContractId(contractId);
+        List<ContractAddendumDto> addendumDtos = cAddendums.stream().map(a -> {
+            ContractAddendumDto aDto = contractAddendumMapper.toDto(a);
+            aDto.setAdjustmentTypeLabel(a.getAdjustmentType() != null ? a.getAdjustmentType().getLabel() : "");
+            return aDto;
+        }).collect(Collectors.toList());
+        dto.setAddendums(addendumDtos);
+        dto.setTotalAddendumCount(BigDecimal.valueOf(addendumDtos.size()));
+
+        BigDecimal totalAdj = c.getValueAfterTax() != null ? c.getValueAfterTax() : BigDecimal.ZERO;
+        for (ContractAddendumEntity a : cAddendums) {
+            BigDecimal aVal = a.getValueAfterTax() != null ? a.getValueAfterTax() : BigDecimal.ZERO;
+            if (a.getAdjustmentType() == AddendumAdjustmentType.INCREASE) {
+                totalAdj = totalAdj.add(aVal);
+            } else if (a.getAdjustmentType() == AddendumAdjustmentType.DECREASE) {
+                totalAdj = totalAdj.subtract(aVal);
+            }
+        }
+        dto.setTotalAdjustedValue(totalAdj.setScale(2, RoundingMode.HALF_UP));
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public IdResponse createContract(Long projectId, ContractDto input) {
+        ProjectEntity project = projectRepository.getProjectById(projectId);
+        String contractNum = StringUtils.trimToEmpty(input.getContractNumber());
+        if (contractRepository.findByContractNumber(contractNum).isPresent()) {
+            throw BusinessException.exception("CST052");
+        }
+
+        ContractEntity entity = contractMapper.toEntity(input);
+        entity.setProjectId(projectId);
+        calculateContractTaxValues(entity);
+
+        contractRepository.save(entity);
+
+        if (entity.getContractType() == ContractType.MAIN) {
+            project.setContractValue(entity.getValueAfterTax());
+            if (entity.getAdvanceAmount() != null) {
+                project.setContractAdvance(entity.getAdvanceAmount());
+            }
+            project.setRemainingAmount(calculateRemainingAmount(entity.getValueAfterTax(), entity.getAdvanceAmount()));
+            if (entity.getSignDate() != null) {
+                project.setSignDate(entity.getSignDate());
+            }
+            if (entity.getEndDate() != null) {
+                project.setDeliveryDate(entity.getEndDate());
+            }
+            projectRepository.save(project);
+        }
+
+        auditLogService.logExplicit(
+                "CREATE_CONTRACT",
+                "PROJECT",
+                "ContractEntity",
+                String.valueOf(entity.getId()),
+                null,
+                Map.of("contractNumber", entity.getContractNumber(), "valueAfterTax", entity.getValueAfterTax()),
+                "Tạo hợp đồng " + entity.getContractNumber() + " cho dự án " + project.getCode(),
+                null
+        );
+
+        return IdResponse.builder().id(entity.getId()).build();
+    }
+
+    @Override
+    @Transactional
+    public IdResponse updateContract(Long projectId, Long contractId, ContractDto input) {
+        ContractEntity entity = contractRepository.findById(contractId)
+                .orElseThrow(() -> BusinessException.exception("CST051"));
+        if (!Objects.equals(entity.getProjectId(), projectId)) {
+            throw BusinessException.exception("CST051");
+        }
+
+        String newNum = StringUtils.trimToEmpty(input.getContractNumber());
+        if (!newNum.equalsIgnoreCase(entity.getContractNumber())) {
+            if (contractRepository.findByContractNumber(newNum).isPresent()) {
+                throw BusinessException.exception("CST052");
+            }
+            entity.setContractNumber(newNum);
+        }
+
+        entity.setName(StringUtils.trimToEmpty(input.getName()));
+        if (input.getContractType() != null) entity.setContractType(input.getContractType());
+        if (input.getStatus() != null) entity.setStatus(input.getStatus());
+        entity.setSignDate(input.getSignDate());
+        entity.setStartDate(input.getStartDate());
+        entity.setEndDate(input.getEndDate());
+        entity.setValueBeforeTax(input.getValueBeforeTax());
+        entity.setVatPercent(input.getVatPercent());
+        entity.setAdvanceAmount(input.getAdvanceAmount());
+        entity.setWarrantyMonths(input.getWarrantyMonths());
+        entity.setWarrantyPercent(input.getWarrantyPercent());
+        entity.setTerms(input.getTerms());
+        entity.setNote(input.getNote());
+        if (input.getContractFiles() != null) entity.setContractFiles(input.getContractFiles());
+
+        calculateContractTaxValues(entity);
+        contractRepository.save(entity);
+
+        if (entity.getContractType() == ContractType.MAIN) {
+            ProjectEntity project = projectRepository.getProjectById(projectId);
+            project.setContractValue(entity.getValueAfterTax());
+            if (entity.getAdvanceAmount() != null) {
+                project.setContractAdvance(entity.getAdvanceAmount());
+            }
+            project.setRemainingAmount(calculateRemainingAmount(entity.getValueAfterTax(), entity.getAdvanceAmount()));
+            if (entity.getSignDate() != null) {
+                project.setSignDate(entity.getSignDate());
+            }
+            if (entity.getEndDate() != null) {
+                project.setDeliveryDate(entity.getEndDate());
+            }
+            projectRepository.save(project);
+        }
+
+        return IdResponse.builder().id(entity.getId()).build();
+    }
+
+    @Override
+    @Transactional
+    public void deleteContract(Long projectId, Long contractId) {
+        ContractEntity entity = contractRepository.findById(contractId)
+                .orElseThrow(() -> BusinessException.exception("CST051"));
+        if (!Objects.equals(entity.getProjectId(), projectId)) {
+            throw BusinessException.exception("CST051");
+        }
+        contractAddendumRepository.deleteAllByContractId(contractId);
+        contractRepository.delete(entity);
+    }
+
+    @Override
+    @Transactional
+    public IdResponse addContractAddendum(Long projectId, Long contractId, ContractAddendumDto input) {
+        ContractEntity contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> BusinessException.exception("CST051"));
+        if (!Objects.equals(contract.getProjectId(), projectId)) {
+            throw BusinessException.exception("CST051");
+        }
+
+        String addendumNum = StringUtils.trimToEmpty(input.getAddendumNumber());
+        if (contractAddendumRepository.findByContractIdAndAddendumNumber(contractId, addendumNum).isPresent()) {
+            throw BusinessException.exception("CST054");
+        }
+
+        ContractAddendumEntity entity = contractAddendumMapper.toEntity(input);
+        entity.setContractId(contractId);
+        entity.setProjectId(projectId);
+        calculateAddendumTaxValues(entity);
+
+        contractAddendumRepository.save(entity);
+
+        if (entity.getNewEndDate() != null) {
+            contract.setEndDate(entity.getNewEndDate());
+            contractRepository.save(contract);
+            ProjectEntity project = projectRepository.getProjectById(projectId);
+            project.setDeliveryDate(entity.getNewEndDate());
+            projectRepository.save(project);
+        }
+
+        auditLogService.logExplicit(
+                "ADD_CONTRACT_ADDENDUM",
+                "PROJECT",
+                "ContractAddendumEntity",
+                String.valueOf(entity.getId()),
+                null,
+                Map.of("addendumNumber", entity.getAddendumNumber(), "adjustmentType", entity.getAdjustmentType().name()),
+                "Thêm phụ lục " + entity.getAddendumNumber() + " cho HĐ " + contract.getContractNumber(),
+                null
+        );
+
+        return IdResponse.builder().id(entity.getId()).build();
+    }
+
+    @Override
+    @Transactional
+    public IdResponse updateContractAddendum(Long projectId, Long contractId, Long addendumId, ContractAddendumDto input) {
+        ContractAddendumEntity entity = contractAddendumRepository.findById(addendumId)
+                .orElseThrow(() -> BusinessException.exception("CST053"));
+        if (!Objects.equals(entity.getContractId(), contractId) || !Objects.equals(entity.getProjectId(), projectId)) {
+            throw BusinessException.exception("CST053");
+        }
+
+        String newNum = StringUtils.trimToEmpty(input.getAddendumNumber());
+        if (!newNum.equalsIgnoreCase(entity.getAddendumNumber())) {
+            if (contractAddendumRepository.findByContractIdAndAddendumNumber(contractId, newNum).isPresent()) {
+                throw BusinessException.exception("CST054");
+            }
+            entity.setAddendumNumber(newNum);
+        }
+
+        entity.setName(StringUtils.trimToEmpty(input.getName()));
+        if (input.getAdjustmentType() != null) entity.setAdjustmentType(input.getAdjustmentType());
+        entity.setSignDate(input.getSignDate());
+        entity.setEffectiveDate(input.getEffectiveDate());
+        entity.setAdjustedDays(input.getAdjustedDays());
+        entity.setNewEndDate(input.getNewEndDate());
+        entity.setValueBeforeTax(input.getValueBeforeTax());
+        entity.setVatPercent(input.getVatPercent());
+        entity.setReason(input.getReason());
+        entity.setContent(input.getContent());
+        entity.setNote(input.getNote());
+        if (input.getAddendumFiles() != null) entity.setAddendumFiles(input.getAddendumFiles());
+
+        calculateAddendumTaxValues(entity);
+        contractAddendumRepository.save(entity);
+
+        return IdResponse.builder().id(entity.getId()).build();
+    }
+
+    @Override
+    @Transactional
+    public void deleteContractAddendum(Long projectId, Long contractId, Long addendumId) {
+        ContractAddendumEntity entity = contractAddendumRepository.findById(addendumId)
+                .orElseThrow(() -> BusinessException.exception("CST053"));
+        if (!Objects.equals(entity.getContractId(), contractId) || !Objects.equals(entity.getProjectId(), projectId)) {
+            throw BusinessException.exception("CST053");
+        }
+        contractAddendumRepository.delete(entity);
+    }
+
+    private void calculateContractTaxValues(ContractEntity entity) {
+        BigDecimal valBefore = entity.getValueBeforeTax() != null ? entity.getValueBeforeTax() : BigDecimal.ZERO;
+        BigDecimal vatPct = entity.getVatPercent() != null ? entity.getVatPercent() : BigDecimal.valueOf(10.0);
+        BigDecimal vatAmt = valBefore.multiply(vatPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal valAfter = valBefore.add(vatAmt).setScale(2, RoundingMode.HALF_UP);
+
+        entity.setValueBeforeTax(valBefore.setScale(2, RoundingMode.HALF_UP));
+        entity.setVatPercent(vatPct.setScale(2, RoundingMode.HALF_UP));
+        entity.setVatAmount(vatAmt);
+        entity.setValueAfterTax(valAfter);
+
+        if (entity.getWarrantyPercent() != null && entity.getWarrantyPercent().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal wAmt = valAfter.multiply(entity.getWarrantyPercent()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            entity.setWarrantyAmount(wAmt);
+        }
+    }
+
+    private void calculateAddendumTaxValues(ContractAddendumEntity entity) {
+        BigDecimal valBefore = entity.getValueBeforeTax() != null ? entity.getValueBeforeTax() : BigDecimal.ZERO;
+        BigDecimal vatPct = entity.getVatPercent() != null ? entity.getVatPercent() : BigDecimal.valueOf(10.0);
+        BigDecimal vatAmt = valBefore.multiply(vatPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal valAfter = valBefore.add(vatAmt).setScale(2, RoundingMode.HALF_UP);
+
+        entity.setValueBeforeTax(valBefore.setScale(2, RoundingMode.HALF_UP));
+        entity.setVatPercent(vatPct.setScale(2, RoundingMode.HALF_UP));
+        entity.setVatAmount(vatAmt);
+        entity.setValueAfterTax(valAfter);
+    }
+
 }

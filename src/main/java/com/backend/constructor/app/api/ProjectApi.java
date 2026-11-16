@@ -47,4 +47,42 @@ public interface ProjectApi {
 
     @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'PROGRESS_UPDATE', 'TASK_CREATE', 'SCOPE_ADMIN')")
     IdResponse addGanttTask(Long projectId, ProjectGanttTaskRequestDto input);
+
+    // ==================== 2.10: THÀNH VIÊN DỰ ÁN & PHÂN QUYỀN DỮ LIỆU ====================
+    @PreAuthorize("hasAnyAuthority('PROJECT_VIEW', 'SCOPE_ADMIN')")
+    List<ProjectMemberDto> getProjectMembers(Long projectId);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    IdResponse addProjectMember(Long projectId, ProjectMemberDto input);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    IdResponse updateProjectMember(Long projectId, Long memberId, ProjectMemberDto input);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    void removeProjectMember(Long projectId, Long memberId);
+
+    // ==================== 2.11: HỢP ĐỒNG & PHỤ LỤC HỢP ĐỒNG ====================
+    @PreAuthorize("hasAnyAuthority('PROJECT_VIEW', 'SCOPE_ADMIN')")
+    List<ContractDto> getProjectContracts(Long projectId);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_VIEW', 'SCOPE_ADMIN')")
+    ContractDto getContractDetail(Long projectId, Long contractId);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    IdResponse createContract(Long projectId, ContractDto input);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    IdResponse updateContract(Long projectId, Long contractId, ContractDto input);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    void deleteContract(Long projectId, Long contractId);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    IdResponse addContractAddendum(Long projectId, Long contractId, ContractAddendumDto input);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    IdResponse updateContractAddendum(Long projectId, Long contractId, Long addendumId, ContractAddendumDto input);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    void deleteContractAddendum(Long projectId, Long contractId, Long addendumId);
 }
