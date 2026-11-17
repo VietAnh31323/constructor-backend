@@ -2,6 +2,8 @@ package com.backend.constructor.app.api;
 
 import com.backend.constructor.app.dto.project.*;
 import com.backend.constructor.common.base.dto.response.IdResponse;
+import com.backend.constructor.core.domain.enums.ProjectDocumentFolder;
+import com.backend.constructor.core.domain.enums.ProjectPaymentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -85,4 +87,40 @@ public interface ProjectApi {
 
     @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
     void deleteContractAddendum(Long projectId, Long contractId, Long addendumId);
+
+    // ==================== 2.13 & 2.14: KẾ HOẠCH ĐỢT THANH TOÁN & GHI NHẬN THU TIỀN THỰC TẾ ====================
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'PAYMENT_CREATE', 'FINANCE_MANAGE', 'SCOPE_ADMIN')")
+    List<ProjectLineDto> savePaymentPlans(Long projectId, List<ProjectLineDto> lines);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_VIEW', 'PAYMENT_VIEW', 'FINANCE_MANAGE', 'SCOPE_ADMIN')")
+    ProjectPaymentSummaryDto getProjectPayments(Long projectId);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'PAYMENT_CREATE', 'FINANCE_MANAGE', 'SCOPE_ADMIN')")
+    ProjectPaymentDto createProjectPayment(Long projectId, ProjectPaymentDto input);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'PAYMENT_CREATE', 'PAYMENT_APPROVE', 'FINANCE_MANAGE', 'SCOPE_ADMIN')")
+    ProjectPaymentDto updateProjectPayment(Long projectId, Long paymentId, ProjectPaymentDto input);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'PAYMENT_APPROVE', 'FINANCE_MANAGE', 'SCOPE_ADMIN')")
+    ProjectPaymentDto updateProjectPaymentStatus(Long projectId, Long paymentId, ProjectPaymentStatus status);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'PAYMENT_APPROVE', 'FINANCE_MANAGE', 'SCOPE_ADMIN')")
+    void deleteProjectPayment(Long projectId, Long paymentId);
+
+    // ==================== 2.15: QUẢN LÝ TÀI LIỆU DỰ ÁN ====================
+    @PreAuthorize("hasAnyAuthority('PROJECT_VIEW', 'SCOPE_ADMIN')")
+    List<ProjectDocumentDto> getProjectDocuments(Long projectId, ProjectDocumentFolder folder);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    ProjectDocumentDto addProjectDocument(Long projectId, ProjectDocumentDto input);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    ProjectDocumentDto updateProjectDocument(Long projectId, Long documentId, ProjectDocumentDto input);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    void deleteProjectDocument(Long projectId, Long documentId);
+
+    // ==================== 2.19: KHỐI LƯỢNG & ĐƠN GIÁ HẠNG MỤC ====================
+    @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    List<ProjectCategoryMapDto> saveProjectCategories(Long projectId, List<ProjectCategoryMapDto> categories);
 }

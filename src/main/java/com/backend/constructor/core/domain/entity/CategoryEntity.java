@@ -5,6 +5,8 @@ import com.backend.constructor.common.validator.Unique;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Getter
 @Setter
 @Entity
@@ -26,4 +28,17 @@ public class CategoryEntity extends BaseEntity {
     private String description;
 
     private Boolean isActive;
+
+    // 2.18: Hạng mục dạng cây
+    @Column(name = "parent_id")
+    private Long parentId;
+
+    @Column(name = "unit", length = 50)
+    private String unit;
+
+    @Column(name = "default_unit_price", precision = 18, scale = 2)
+    private BigDecimal defaultUnitPrice;
+
+    @Column(name = "sort_order")
+    private Integer sortOrder;
 }

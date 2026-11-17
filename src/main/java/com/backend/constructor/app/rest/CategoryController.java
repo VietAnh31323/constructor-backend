@@ -13,6 +13,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/category")
@@ -50,5 +52,11 @@ public class CategoryController implements CategoryApi {
     public Page<CategoryDto> getListCategory(@ParameterObject CategoryFilterParam param,
                                              @ParameterObject Pageable pageable) {
         return categoryService.getListCategory(param, pageable);
+    }
+
+    @Override
+    @GetMapping("/tree")
+    public List<CategoryDto> getTreeCategory() {
+        return categoryService.getTreeCategory();
     }
 }

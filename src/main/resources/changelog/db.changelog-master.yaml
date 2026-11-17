@@ -47,3 +47,12 @@ databaseChangeLog:
   - include:
       file: v1.1.3/01-contract-and-addendum.sql
       relativeToChangelogFile: true
+  - include:
+      file: v1.1.4/01-payment-plan-and-actual-payments.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v1.1.5/01-project-documents-and-technical-info.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v1.1.6/01-category-tree-quantity-and-process-templates.sql
+      relativeToChangelogFile: true

@@ -7,6 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import java.util.List;
+
 public interface CategoryApi {
     @PreAuthorize("hasAnyAuthority('PROJECT_UPDATE', 'SCOPE_ADMIN')")
     IdResponse create(CategoryDto input);
@@ -23,4 +25,7 @@ public interface CategoryApi {
     @PreAuthorize("hasAnyAuthority('PROJECT_VIEW', 'PROJECT_CREATE', 'PROJECT_UPDATE', 'SCOPE_ADMIN')")
     Page<CategoryDto> getListCategory(CategoryFilterParam param,
                                       Pageable pageable);
+
+    @PreAuthorize("hasAnyAuthority('PROJECT_VIEW', 'PROJECT_CREATE', 'PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    List<CategoryDto> getTreeCategory();
 }

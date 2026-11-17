@@ -4,6 +4,7 @@ import com.backend.constructor.app.dto.upload.UploadDto;
 import com.backend.constructor.common.base.entity.BaseEntity;
 import com.backend.constructor.common.validator.Unique;
 import com.backend.constructor.core.domain.converter.UploadDtoListConverter;
+import com.backend.constructor.core.domain.enums.BuildingType;
 import com.backend.constructor.core.domain.enums.ProjectState;
 import jakarta.persistence.*;
 import lombok.*;
@@ -90,4 +91,30 @@ public class ProjectEntity extends BaseEntity {
 
     @Convert(converter = UploadDtoListConverter.class)
     private List<UploadDto> projectImages;
+
+    // 2.16: Thông tin kỹ thuật công trình
+    @Enumerated(EnumType.STRING)
+    @Column(name = "building_type", length = 100)
+    private BuildingType buildingType;
+
+    @Column(name = "land_area", precision = 12, scale = 2)
+    private BigDecimal landArea;
+
+    @Column(name = "construction_area", precision = 12, scale = 2)
+    private BigDecimal constructionArea;
+
+    @Column(name = "total_floor_area", precision = 12, scale = 2)
+    private BigDecimal totalFloorArea;
+
+    @Column(name = "number_of_floors")
+    private Integer numberOfFloors;
+
+    @Column(name = "construction_permit_no", length = 100)
+    private String constructionPermitNo;
+
+    @Column(name = "construction_permit_date")
+    private LocalDate constructionPermitDate;
+
+    @Column(name = "design_unit", length = 255)
+    private String designUnit;
 }

@@ -2,6 +2,7 @@ package com.backend.constructor.app.dto.project;
 
 import com.backend.constructor.app.dto.upload.UploadDto;
 import com.backend.constructor.common.base.dto.response.CodeNameResponse;
+import com.backend.constructor.core.domain.enums.BuildingType;
 import com.backend.constructor.core.domain.enums.CustomerType;
 import com.backend.constructor.core.domain.enums.ProjectState;
 import jakarta.validation.Valid;
@@ -98,6 +99,35 @@ public class ProjectDto {
 
     // 2.11: Hợp đồng & Phụ lục
     private List<ContractDto> contracts;
+
+    // 2.15: Số lượng tài liệu dự án
+    private Integer documentCount;
+
+    // 2.16: Thông tin kỹ thuật công trình
+    private BuildingType buildingType;
+
+    private String buildingTypeLabel;
+
+    @Min(0)
+    @Digits(integer = 10, fraction = 2)
+    private BigDecimal landArea;
+
+    @Min(0)
+    @Digits(integer = 10, fraction = 2)
+    private BigDecimal constructionArea;
+
+    @Min(0)
+    @Digits(integer = 10, fraction = 2)
+    private BigDecimal totalFloorArea;
+
+    @Min(0)
+    private Integer numberOfFloors;
+
+    private String constructionPermitNo;
+
+    private LocalDate constructionPermitDate;
+
+    private String designUnit;
 
     @Valid
     @NotEmpty(message = "{ERROR_0001}")

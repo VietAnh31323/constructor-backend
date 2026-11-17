@@ -4,6 +4,8 @@ import com.backend.constructor.app.api.ProjectApi;
 import com.backend.constructor.app.dto.project.*;
 import com.backend.constructor.common.base.dto.response.IdResponse;
 import com.backend.constructor.common.base.response.paging.HandsomePaging;
+import com.backend.constructor.core.domain.enums.ProjectDocumentFolder;
+import com.backend.constructor.core.domain.enums.ProjectPaymentStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -187,5 +189,90 @@ public class ProjectController implements ProjectApi {
                                        @PathVariable Long contractId,
                                        @PathVariable Long addendumId) {
         projectService.deleteContractAddendum(projectId, contractId, addendumId);
+    }
+
+    // ==================== 2.13 & 2.14: KẾ HOẠCH ĐỢT THANH TOÁN & GHI NHẬN THU TIỀN THỰC TẾ ====================
+
+    @Override
+    @PutMapping("/{projectId}/payment-plans")
+    public List<ProjectLineDto> savePaymentPlans(@PathVariable Long projectId,
+                                                 @RequestBody @Valid List<ProjectLineDto> lines) {
+        return projectService.savePaymentPlans(projectId, lines);
+    }
+
+    @Override
+    @GetMapping("/{projectId}/payments")
+    public ProjectPaymentSummaryDto getProjectPayments(@PathVariable Long projectId) {
+        return projectService.getProjectPayments(projectId);
+    }
+
+    @Override
+    @PostMapping("/{projectId}/payments")
+    public ProjectPaymentDto createProjectPayment(@PathVariable Long projectId,
+                                                  @RequestBody @Valid ProjectPaymentDto input) {
+        return projectService.createProjectPayment(projectId, input);
+    }
+
+    @Override
+    @PutMapping("/{projectId}/payments/{paymentId}")
+    public ProjectPaymentDto updateProjectPayment(@PathVariable Long projectId,
+                                                  @PathVariable Long paymentId,
+                                                  @RequestBody @Valid ProjectPaymentDto input) {
+        return projectService.updateProjectPayment(projectId, paymentId, input);
+    }
+
+    @Override
+    @PatchMapping("/{projectId}/payments/{paymentId}/status")
+    public ProjectPaymentDto updateProjectPaymentStatus(@PathVariable Long projectId,
+                                                        @PathVariable Long paymentId,
+                                                        @RequestParam ProjectPaymentStatus status) {
+        return projectService.updateProjectPaymentStatus(projectId, paymentId, status);
+    }
+
+    @Override
+    @DeleteMapping("/{projectId}/payments/{paymentId}")
+    public void deleteProjectPayment(@PathVariable Long projectId,
+                                     @PathVariable Long paymentId) {
+        projectService.deleteProjectPayment(projectId, paymentId);
+    }
+
+    // ==================== 2.15: QUẢN LÝ TÀI LIỆU DỰ ÁN ====================
+
+    @Override
+    @GetMapping("/{projectId}/documents")
+    public List<ProjectDocumentDto> getProjectDocuments(@PathVariable Long projectId,
+                                                        @RequestParam(required = false) ProjectDocumentFolder folder) {
+        return projectService.getProjectDocuments(projectId, folder);
+    }
+
+    @Override
+    @PostMapping("/{projectId}/documents")
+    public ProjectDocumentDto addProjectDocument(@PathVariable Long projectId,
+                                                 @RequestBody @Valid ProjectDocumentDto input) {
+        return projectService.addProjectDocument(projectId, input);
+    }
+
+    @Override
+    @PutMapping("/{projectId}/documents/{documentId}")
+    public ProjectDocumentDto updateProjectDocument(@PathVariable Long projectId,
+                                                    @PathVariable Long documentId,
+                                                    @RequestBody @Valid ProjectDocumentDto input) {
+        return projectService.updateProjectDocument(projectId, documentId, input);
+    }
+
+    @Override
+    @DeleteMapping("/{projectId}/documents/{documentId}")
+    public void deleteProjectDocument(@PathVariable Long projectId,
+                                      @PathVariable Long documentId) {
+        projectService.deleteProjectDocument(projectId, documentId);
+    }
+
+    // ==================== 2.19: KHỐI LƯỢNG & ĐƠN GIÁ HẠNG MỤC ====================
+
+    @Override
+    @PutMapping("/{projectId}/categories")
+    public List<ProjectCategoryMapDto> saveProjectCategories(@PathVariable Long projectId,
+                                                             @RequestBody @Valid List<ProjectCategoryMapDto> categories) {
+        return projectService.saveProjectCategories(projectId, categories);
     }
 }

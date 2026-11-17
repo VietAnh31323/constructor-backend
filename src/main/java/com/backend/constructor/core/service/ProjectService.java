@@ -10,8 +10,10 @@ import com.backend.constructor.common.validator.UniqueValidationService;
 import com.backend.constructor.core.domain.constant.Constants;
 import com.backend.constructor.core.domain.entity.*;
 import com.backend.constructor.core.domain.enums.*;
+import com.backend.constructor.core.port.mapper.ProjectDocumentMapper;
 import com.backend.constructor.core.port.mapper.ProjectLineMapper;
 import com.backend.constructor.core.port.mapper.ProjectMemberMapper;
+import com.backend.constructor.core.port.mapper.ProjectPaymentMapper;
 import com.backend.constructor.core.port.mapper.ContractMapper;
 import com.backend.constructor.core.port.mapper.ContractAddendumMapper;
 import org.springframework.security.core.Authentication;
@@ -68,6 +70,11 @@ public class ProjectService implements ProjectApi {
     private final ContractAddendumMapper contractAddendumMapper;
     private final AccountRepository accountRepository;
     private final AccountStaffMapRepository accountStaffMapRepository;
+    private final ProjectPaymentRepository projectPaymentRepository;
+    private final ProjectPaymentMapper projectPaymentMapper;
+    private final ProjectDocumentRepository projectDocumentRepository;
+    private final ProjectDocumentMapper projectDocumentMapper;
+    private final ProcessTemplateService processTemplateService;
 
 
     @Override
@@ -89,7 +96,7 @@ public class ProjectService implements ProjectApi {
         if (projectEntity.getContractAdvance() != null) {
             projectEntity.setContractAdvance(projectEntity.getContractAdvance().setScale(2, RoundingMode.HALF_UP));
         }
-        projectEntity.setRemainingAmount(calculateRemainingAmount(contractVal, projectEntity.getContractAdvance()));
+        projectEntity.setRemainingAmount(calculateRemainingAmount(null, contractVal, projectEntity.getContractAdvance()));
 
         ProjectState initialState = projectEntity.getState() != null
                 ? projectEntity.getState()
@@ -110,6 +117,7 @@ public class ProjectService implements ProjectApi {
         recordProjectStateLog(projectEntity, null, initialState, projectEntity.getStateReason());
         syncCustomerPipelineOnProjectSave(linkedCustomer, initialState);
         syncProjectMembersOnCreate(projectEntity, input.getMembers());
+        processTemplateService.applyDefaultTemplateIfEligible(projectEntity);
         return IdResponse.builder().id(projectEntity.getId()).build();
     }
 
@@ -142,7 +150,7 @@ public class ProjectService implements ProjectApi {
         if (projectEntity.getContractAdvance() != null) {
             projectEntity.setContractAdvance(projectEntity.getContractAdvance().setScale(2, RoundingMode.HALF_UP));
         }
-        projectEntity.setRemainingAmount(calculateRemainingAmount(contractVal, projectEntity.getContractAdvance()));
+        projectEntity.setRemainingAmount(calculateRemainingAmount(projectEntity.getId(), contractVal, projectEntity.getContractAdvance()));
 
         int categoryCount = input.getProjectCategoryMaps() != null ? input.getProjectCategoryMaps().size() : 0;
         if (targetState != existingState) {
@@ -157,7 +165,10 @@ public class ProjectService implements ProjectApi {
 
         uniqueValidationService.validate(projectEntity);
         projectRepository.save(projectEntity);
-        deleteAllRelations(projectEntity);
+        List<ProjectCategoryMapEntity> oldCategoryMaps = projectCategoryMapRepository.getListByProjectId(projectEntity.getId());
+        if (!oldCategoryMaps.isEmpty()) {
+            projectCategoryMapRepository.deleteAllInBatch(oldCategoryMaps);
+        }
         saveProjectLines(projectEntity, input.getProjectLines());
         saveProjectCategoryMaps(projectEntity, input.getProjectCategoryMaps());
 
@@ -197,6 +208,8 @@ public class ProjectService implements ProjectApi {
         projectMemberRepository.deleteAllByProjectId(id);
         contractAddendumRepository.deleteAllByProjectId(id);
         contractRepository.deleteAllByProjectId(id);
+        projectPaymentRepository.deleteAllByProjectId(id);
+        projectDocumentRepository.deleteAllByProjectId(id);
         projectRepository.delete(projectEntity);
     }
 
@@ -243,6 +256,10 @@ public class ProjectService implements ProjectApi {
         setProjectCategoryLines(projectDto, projectLineEntities);
         checkProjectAccessScope(id);
         enrichProjectDetailMembersAndContracts(projectDto, id);
+        if (projectEntity.getBuildingType() != null) {
+            projectDto.setBuildingTypeLabel(projectEntity.getBuildingType().getLabel());
+        }
+        projectDto.setDocumentCount(projectDocumentRepository.getListByProjectId(id).size());
         return projectDto;
     }
 
@@ -1245,21 +1262,66 @@ public class ProjectService implements ProjectApi {
 
     private void saveProjectLines(ProjectEntity projectEntity,
                                   List<ProjectLineDto> projectLines) {
+        List<ProjectLineEntity> existingLines = projectLineRepository.getListByProjectId(projectEntity.getId());
+        Map<Long, ProjectLineEntity> existingMap = existingLines.stream()
+                .collect(Collectors.toMap(ProjectLineEntity::getId, l -> l));
+
         if (projectLines == null || projectLines.isEmpty()) {
+            if (!existingLines.isEmpty()) {
+                projectLineRepository.deleteAllInBatch(existingLines);
+            }
             return;
         }
-        List<ProjectLineEntity> projectLineEntities = new ArrayList<>();
-        for (ProjectLineDto projectLineDto : projectLines) {
-            if (projectLineDto == null) continue;
-            ProjectLineEntity entity = projectLineMapper.toEntity(projectLineDto);
-            if (entity.getPaymentAmount() != null) {
-                entity.setPaymentAmount(entity.getPaymentAmount().setScale(2, RoundingMode.HALF_UP));
+
+        BigDecimal contractVal = projectEntity.getContractValue() != null
+                ? projectEntity.getContractValue()
+                : BigDecimal.ZERO;
+
+        Set<Long> retainedIds = new HashSet<>();
+        List<ProjectLineEntity> toSave = new ArrayList<>();
+        long order = 1;
+        for (ProjectLineDto dto : projectLines) {
+            if (dto == null) continue;
+            ProjectLineEntity entity = (dto.getId() != null && existingMap.containsKey(dto.getId()))
+                    ? existingMap.get(dto.getId())
+                    : new ProjectLineEntity();
+
+            if (entity.getId() != null) {
+                retainedIds.add(entity.getId());
             }
+
+            BigDecimal amount = dto.getPaymentAmount();
+            BigDecimal pct = dto.getPercentage();
+
+            if (amount == null && pct != null && contractVal.compareTo(BigDecimal.ZERO) > 0) {
+                amount = contractVal.multiply(pct)
+                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            } else if (pct == null && amount != null && contractVal.compareTo(BigDecimal.ZERO) > 0) {
+                pct = amount.multiply(BigDecimal.valueOf(100))
+                        .divide(contractVal, 2, RoundingMode.HALF_UP);
+            }
+
             entity.setProjectId(projectEntity.getId());
-            projectLineEntities.add(entity);
+            entity.setPaymentNo(dto.getPaymentNo() != null ? dto.getPaymentNo() : order);
+            entity.setPaymentDate(dto.getPaymentDate());
+            entity.setPaymentAmount(amount != null ? amount.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+            entity.setPercentage(pct != null ? pct.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+            entity.setConditionMilestone(StringUtils.trimToNull(dto.getConditionMilestone()));
+            entity.setStatus(dto.getStatus() != null ? dto.getStatus() : PaymentPlanStatus.PLANNED);
+            entity.setNote(StringUtils.trimToNull(dto.getNote()));
+
+            toSave.add(entity);
+            order++;
         }
-        if (!projectLineEntities.isEmpty()) {
-            projectLineRepository.saveAll(projectLineEntities);
+
+        List<ProjectLineEntity> toDelete = existingLines.stream()
+                .filter(l -> !retainedIds.contains(l.getId()))
+                .toList();
+        if (!toDelete.isEmpty()) {
+            projectLineRepository.deleteAllInBatch(toDelete);
+        }
+        if (!toSave.isEmpty()) {
+            projectLineRepository.saveAll(toSave);
         }
     }
 
@@ -1268,15 +1330,44 @@ public class ProjectService implements ProjectApi {
         if (projectCategoryMaps == null || projectCategoryMaps.isEmpty()) {
             return;
         }
+        Set<Long> catIds = projectCategoryMaps.stream()
+                .map(m -> m.getCategory() != null ? m.getCategory().getId() : null)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, CategoryEntity> catEntityMap = catIds.isEmpty()
+                ? Collections.emptyMap()
+                : categoryRepository.findAllByIds(new ArrayList<>(catIds)).stream()
+                        .collect(Collectors.toMap(CategoryEntity::getId, c -> c));
+
         List<ProjectCategoryMapEntity> projectCategoryMapEntities = new ArrayList<>();
         for (ProjectCategoryMapDto projectCategoryMap : projectCategoryMaps) {
             CodeNameResponse category = projectCategoryMap.getCategory();
             if (category == null || category.getId() == null) {
                 throw BusinessException.exception("CST015");
             }
+            CategoryEntity catEntity = catEntityMap.get(category.getId());
+            String unit = StringUtils.trimToNull(projectCategoryMap.getUnit());
+            if (unit == null && catEntity != null) {
+                unit = catEntity.getUnit();
+            }
+            BigDecimal qty = projectCategoryMap.getQuantity() != null
+                    ? projectCategoryMap.getQuantity().setScale(3, RoundingMode.HALF_UP)
+                    : BigDecimal.ONE.setScale(3, RoundingMode.HALF_UP);
+            BigDecimal unitPrice = projectCategoryMap.getUnitPrice() != null
+                    ? projectCategoryMap.getUnitPrice().setScale(2, RoundingMode.HALF_UP)
+                    : (catEntity != null && catEntity.getDefaultUnitPrice() != null
+                            ? catEntity.getDefaultUnitPrice().setScale(2, RoundingMode.HALF_UP)
+                            : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+            BigDecimal total = qty.multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+
             ProjectCategoryMapEntity projectCategoryMapEntity = ProjectCategoryMapEntity.builder()
                     .projectId(projectEntity.getId())
                     .categoryId(category.getId())
+                    .unit(unit)
+                    .quantity(qty)
+                    .unitPrice(unitPrice)
+                    .totalAmount(total)
+                    .note(StringUtils.trimToNull(projectCategoryMap.getNote()))
                     .build();
             projectCategoryMapEntities.add(projectCategoryMapEntity);
         }
@@ -1308,6 +1399,11 @@ public class ProjectService implements ProjectApi {
             ProjectCategoryMapDto projectCategoryMapDto = ProjectCategoryMapDto.builder()
                     .id(projectCategoryMapEntity.getId())
                     .category(getData(categoryMap, projectCategoryMapEntity.getCategoryId()))
+                    .unit(projectCategoryMapEntity.getUnit())
+                    .quantity(projectCategoryMapEntity.getQuantity())
+                    .unitPrice(projectCategoryMapEntity.getUnitPrice())
+                    .totalAmount(projectCategoryMapEntity.getTotalAmount())
+                    .note(projectCategoryMapEntity.getNote())
                     .build();
             projectCategoryMaps.add(projectCategoryMapDto);
         }
@@ -1316,8 +1412,42 @@ public class ProjectService implements ProjectApi {
 
     private void setProjectCategoryLines(ProjectDto projectDto,
                                          List<ProjectLineEntity> projectLineEntities) {
+        List<ProjectPaymentEntity> payments = projectDto.getId() != null
+                ? projectPaymentRepository.getListByProjectId(projectDto.getId())
+                : Collections.emptyList();
+        Map<Long, BigDecimal> collectedByLine = new HashMap<>();
+        for (ProjectPaymentEntity p : payments) {
+            if (p.getStatus() == ProjectPaymentStatus.CONFIRMED && p.getProjectLineId() != null && p.getAmount() != null) {
+                collectedByLine.merge(p.getProjectLineId(), p.getAmount(), BigDecimal::add);
+            }
+        }
+        LocalDate today = LocalDate.now();
         List<ProjectLineDto> projectLines = projectLineEntities.stream()
-                .map(projectLineMapper::toDto)
+                .sorted(Comparator.comparing(ProjectLineEntity::getPaymentNo, Comparator.nullsLast(Long::compareTo))
+                        .thenComparing(ProjectLineEntity::getId, Comparator.nullsLast(Long::compareTo)))
+                .map(entity -> {
+                    ProjectLineDto dto = projectLineMapper.toDto(entity);
+                    BigDecimal planned = entity.getPaymentAmount() != null ? entity.getPaymentAmount() : BigDecimal.ZERO;
+                    BigDecimal collected = collectedByLine.getOrDefault(entity.getId(), BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal remaining = planned.subtract(collected).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+
+                    PaymentPlanStatus computedStatus = entity.getStatus() != null ? entity.getStatus() : PaymentPlanStatus.PLANNED;
+                    if (planned.compareTo(BigDecimal.ZERO) > 0 && collected.compareTo(planned) >= 0) {
+                        computedStatus = PaymentPlanStatus.PAID;
+                    } else if (collected.compareTo(BigDecimal.ZERO) > 0) {
+                        computedStatus = PaymentPlanStatus.PARTIAL;
+                    } else if (entity.getPaymentDate() != null && entity.getPaymentDate().isBefore(today)) {
+                        computedStatus = PaymentPlanStatus.OVERDUE;
+                    } else if (entity.getPaymentDate() != null && !entity.getPaymentDate().isAfter(today.plusDays(7))) {
+                        computedStatus = PaymentPlanStatus.DUE;
+                    }
+
+                    dto.setCollectedAmount(collected);
+                    dto.setRemainingLineAmount(remaining);
+                    dto.setStatus(computedStatus);
+                    dto.setStatusLabel(computedStatus.getLabel());
+                    return dto;
+                })
                 .toList();
         projectDto.setProjectLines(projectLines);
     }
@@ -1358,11 +1488,29 @@ public class ProjectService implements ProjectApi {
         return PaymentStatus.COMPLETED;
     }
 
-    private BigDecimal calculateRemainingAmount(BigDecimal contractValue,
+    private BigDecimal calculateRemainingAmount(Long projectId,
+                                                BigDecimal contractValue,
                                                 BigDecimal contractAdvance) {
         BigDecimal value = contractValue != null ? contractValue : BigDecimal.ZERO;
         BigDecimal advance = contractAdvance != null ? contractAdvance : BigDecimal.ZERO;
-        return value.subtract(advance).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal confirmedPayments = projectId != null
+                ? projectPaymentRepository.sumConfirmedAmountByProjectId(projectId)
+                : BigDecimal.ZERO;
+        if (confirmedPayments == null) {
+            confirmedPayments = BigDecimal.ZERO;
+        }
+        return value.subtract(advance.add(confirmedPayments))
+                .max(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private void recalculateAndSaveProjectRemaining(ProjectEntity project) {
+        project.setRemainingAmount(calculateRemainingAmount(
+                project.getId(),
+                project.getContractValue(),
+                project.getContractAdvance()
+        ));
+        projectRepository.save(project);
     }
 
     // =========================================================================
@@ -1730,7 +1878,7 @@ public class ProjectService implements ProjectApi {
             if (entity.getAdvanceAmount() != null) {
                 project.setContractAdvance(entity.getAdvanceAmount());
             }
-            project.setRemainingAmount(calculateRemainingAmount(entity.getValueAfterTax(), entity.getAdvanceAmount()));
+            project.setRemainingAmount(calculateRemainingAmount(projectId, entity.getValueAfterTax(), entity.getAdvanceAmount()));
             if (entity.getSignDate() != null) {
                 project.setSignDate(entity.getSignDate());
             }
@@ -1795,7 +1943,7 @@ public class ProjectService implements ProjectApi {
             if (entity.getAdvanceAmount() != null) {
                 project.setContractAdvance(entity.getAdvanceAmount());
             }
-            project.setRemainingAmount(calculateRemainingAmount(entity.getValueAfterTax(), entity.getAdvanceAmount()));
+            project.setRemainingAmount(calculateRemainingAmount(projectId, entity.getValueAfterTax(), entity.getAdvanceAmount()));
             if (entity.getSignDate() != null) {
                 project.setSignDate(entity.getSignDate());
             }
@@ -1937,6 +2085,364 @@ public class ProjectService implements ProjectApi {
         entity.setVatPercent(vatPct.setScale(2, RoundingMode.HALF_UP));
         entity.setVatAmount(vatAmt);
         entity.setValueAfterTax(valAfter);
+    }
+
+    // =========================================================================
+    // 2.13 & 2.14: KẾ HOẠCH ĐỢT THANH TOÁN & GHI NHẬN THU TIỀN THỰC TẾ
+    // =========================================================================
+
+    @Override
+    @Transactional
+    public List<ProjectLineDto> savePaymentPlans(Long projectId, List<ProjectLineDto> lines) {
+        checkProjectAccessScope(projectId);
+        ProjectEntity project = projectRepository.getProjectById(projectId);
+        saveProjectLines(project, lines);
+
+        ProjectDto tempDto = ProjectDto.builder().id(projectId).build();
+        setProjectCategoryLines(tempDto, projectLineRepository.getListByProjectId(projectId));
+        return tempDto.getProjectLines();
+    }
+
+    @Override
+    public ProjectPaymentSummaryDto getProjectPayments(Long projectId) {
+        checkProjectAccessScope(projectId);
+        ProjectEntity project = projectRepository.getProjectById(projectId);
+
+        List<ProjectLineEntity> planLines = projectLineRepository.getListByProjectId(projectId);
+        Map<Long, ProjectLineEntity> lineMap = planLines.stream()
+                .collect(Collectors.toMap(ProjectLineEntity::getId, l -> l));
+
+        List<ProjectPaymentEntity> paymentEntities = projectPaymentRepository.getListByProjectId(projectId);
+        BigDecimal confirmedTotal = BigDecimal.ZERO;
+        BigDecimal pendingTotal = BigDecimal.ZERO;
+
+        List<ProjectPaymentDto> paymentDtos = new ArrayList<>();
+        for (ProjectPaymentEntity entity : paymentEntities) {
+            if (entity.getStatus() == ProjectPaymentStatus.CONFIRMED && entity.getAmount() != null) {
+                confirmedTotal = confirmedTotal.add(entity.getAmount());
+            } else if (entity.getStatus() == ProjectPaymentStatus.PENDING && entity.getAmount() != null) {
+                pendingTotal = pendingTotal.add(entity.getAmount());
+            }
+            paymentDtos.add(toProjectPaymentDto(entity, lineMap));
+        }
+
+        BigDecimal contractValue = project.getContractValue() != null
+                ? project.getContractValue().setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal contractAdvance = project.getContractAdvance() != null
+                ? project.getContractAdvance().setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal totalCollected = contractAdvance.add(confirmedTotal).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal remaining = contractValue.subtract(totalCollected).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal collectionRate = contractValue.compareTo(BigDecimal.ZERO) > 0
+                ? totalCollected.multiply(BigDecimal.valueOf(100))
+                        .divide(contractValue, 2, RoundingMode.HALF_UP)
+                        .min(BigDecimal.valueOf(100))
+                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+        return ProjectPaymentSummaryDto.builder()
+                .projectId(projectId)
+                .contractValue(contractValue)
+                .contractAdvance(contractAdvance)
+                .confirmedPaymentTotal(confirmedTotal.setScale(2, RoundingMode.HALF_UP))
+                .pendingPaymentTotal(pendingTotal.setScale(2, RoundingMode.HALF_UP))
+                .totalCollected(totalCollected)
+                .remainingAmount(remaining)
+                .collectionRate(collectionRate)
+                .payments(paymentDtos)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ProjectPaymentDto createProjectPayment(Long projectId, ProjectPaymentDto input) {
+        checkProjectAccessScope(projectId);
+        ProjectEntity project = projectRepository.getProjectById(projectId);
+
+        ProjectPaymentEntity entity = projectPaymentMapper.toEntity(input);
+        entity.setId(null);
+        entity.setProjectId(projectId);
+        entity.setAmount(input.getAmount().setScale(2, RoundingMode.HALF_UP));
+        entity.setPaymentMethod(input.getPaymentMethod() != null ? input.getPaymentMethod() : PaymentMethod.BANK_TRANSFER);
+        entity.setStatus(input.getStatus() != null ? input.getStatus() : ProjectPaymentStatus.CONFIRMED);
+        entity.setPayerName(StringUtils.trimToNull(input.getPayerName()));
+        entity.setNote(StringUtils.trimToNull(input.getNote()));
+
+        String code = StringUtils.trimToNull(input.getReceiptCode());
+        if (code == null) {
+            int nextIdx = projectPaymentRepository.getListByProjectId(projectId).size() + 1;
+            code = String.format("PT-%s-%03d",
+                    StringUtils.isNotBlank(project.getCode()) ? project.getCode() : String.valueOf(projectId),
+                    nextIdx);
+        }
+        entity.setReceiptCode(code);
+
+        if (entity.getProjectLineId() != null) {
+            projectLineRepository.findById(entity.getProjectLineId()).ifPresent(line -> {
+                if (!Objects.equals(line.getProjectId(), projectId)) {
+                    throw BusinessException.exception("CST002");
+                }
+            });
+        }
+
+        projectPaymentRepository.save(entity);
+        recalculateAndSaveProjectRemaining(project);
+
+        auditLogService.logExplicit(
+                "RECORD_PROJECT_PAYMENT",
+                "PROJECT",
+                "ProjectPaymentEntity",
+                String.valueOf(entity.getId()),
+                null,
+                Map.of(
+                        "receiptCode", entity.getReceiptCode(),
+                        "amount", entity.getAmount(),
+                        "status", entity.getStatus().name()
+                ),
+                "Ghi nhận phiếu thu " + entity.getReceiptCode() + " (" + entity.getAmount() + " VNĐ) cho dự án " + project.getCode(),
+                null
+        );
+
+        Map<Long, ProjectLineEntity> lineMap = projectLineRepository.getListByProjectId(projectId).stream()
+                .collect(Collectors.toMap(ProjectLineEntity::getId, l -> l));
+        return toProjectPaymentDto(entity, lineMap);
+    }
+
+    @Override
+    @Transactional
+    public ProjectPaymentDto updateProjectPayment(Long projectId, Long paymentId, ProjectPaymentDto input) {
+        checkProjectAccessScope(projectId);
+        ProjectEntity project = projectRepository.getProjectById(projectId);
+        ProjectPaymentEntity entity = projectPaymentRepository.findById(paymentId)
+                .orElseThrow(() -> BusinessException.exception("CST002"));
+        if (!Objects.equals(entity.getProjectId(), projectId)) {
+            throw BusinessException.exception("CST002");
+        }
+
+        if (StringUtils.isNotBlank(input.getReceiptCode())) {
+            entity.setReceiptCode(input.getReceiptCode().trim());
+        }
+        entity.setProjectLineId(input.getProjectLineId());
+        entity.setPaymentDate(input.getPaymentDate());
+        entity.setAmount(input.getAmount().setScale(2, RoundingMode.HALF_UP));
+        if (input.getPaymentMethod() != null) {
+            entity.setPaymentMethod(input.getPaymentMethod());
+        }
+        if (input.getStatus() != null) {
+            entity.setStatus(input.getStatus());
+        }
+        entity.setPayerName(StringUtils.trimToNull(input.getPayerName()));
+        entity.setNote(StringUtils.trimToNull(input.getNote()));
+        if (input.getAttachments() != null) {
+            entity.setAttachments(input.getAttachments());
+        }
+
+        projectPaymentRepository.save(entity);
+        recalculateAndSaveProjectRemaining(project);
+
+        Map<Long, ProjectLineEntity> lineMap = projectLineRepository.getListByProjectId(projectId).stream()
+                .collect(Collectors.toMap(ProjectLineEntity::getId, l -> l));
+        return toProjectPaymentDto(entity, lineMap);
+    }
+
+    @Override
+    @Transactional
+    public ProjectPaymentDto updateProjectPaymentStatus(Long projectId, Long paymentId, ProjectPaymentStatus status) {
+        checkProjectAccessScope(projectId);
+        ProjectEntity project = projectRepository.getProjectById(projectId);
+        ProjectPaymentEntity entity = projectPaymentRepository.findById(paymentId)
+                .orElseThrow(() -> BusinessException.exception("CST002"));
+        if (!Objects.equals(entity.getProjectId(), projectId)) {
+            throw BusinessException.exception("CST002");
+        }
+
+        ProjectPaymentStatus prev = entity.getStatus();
+        entity.setStatus(status);
+        projectPaymentRepository.save(entity);
+        recalculateAndSaveProjectRemaining(project);
+
+        auditLogService.logExplicit(
+                "UPDATE_PROJECT_PAYMENT_STATUS",
+                "PROJECT",
+                "ProjectPaymentEntity",
+                String.valueOf(entity.getId()),
+                Map.of("status", prev != null ? prev.name() : ""),
+                Map.of("status", status.name()),
+                "Cập nhật trạng thái phiếu thu " + entity.getReceiptCode() + " từ " + (prev != null ? prev.getLabel() : "—") + " sang " + status.getLabel(),
+                null
+        );
+
+        Map<Long, ProjectLineEntity> lineMap = projectLineRepository.getListByProjectId(projectId).stream()
+                .collect(Collectors.toMap(ProjectLineEntity::getId, l -> l));
+        return toProjectPaymentDto(entity, lineMap);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProjectPayment(Long projectId, Long paymentId) {
+        checkProjectAccessScope(projectId);
+        ProjectEntity project = projectRepository.getProjectById(projectId);
+        ProjectPaymentEntity entity = projectPaymentRepository.findById(paymentId)
+                .orElseThrow(() -> BusinessException.exception("CST002"));
+        if (!Objects.equals(entity.getProjectId(), projectId)) {
+            throw BusinessException.exception("CST002");
+        }
+        projectPaymentRepository.delete(entity);
+        recalculateAndSaveProjectRemaining(project);
+    }
+
+    private ProjectPaymentDto toProjectPaymentDto(ProjectPaymentEntity entity,
+                                                  Map<Long, ProjectLineEntity> lineMap) {
+        ProjectPaymentDto dto = projectPaymentMapper.toDto(entity);
+        if (entity.getPaymentMethod() != null) {
+            dto.setPaymentMethodLabel(entity.getPaymentMethod().getLabel());
+        }
+        if (entity.getStatus() != null) {
+            dto.setStatusLabel(entity.getStatus().getLabel());
+        }
+        if (entity.getProjectLineId() != null && lineMap.containsKey(entity.getProjectLineId())) {
+            ProjectLineEntity line = lineMap.get(entity.getProjectLineId());
+            dto.setPaymentPlanNo(line.getPaymentNo());
+            dto.setPaymentPlanMilestone(line.getConditionMilestone());
+        }
+        return dto;
+    }
+
+    // =========================================================================
+    // 2.15: QUẢN LÝ TÀI LIỆU DỰ ÁN
+    // =========================================================================
+
+    @Override
+    public List<ProjectDocumentDto> getProjectDocuments(Long projectId, ProjectDocumentFolder folder) {
+        checkProjectAccessScope(projectId);
+        projectRepository.getProjectById(projectId);
+        List<ProjectDocumentEntity> entities = folder != null
+                ? projectDocumentRepository.getListByProjectIdAndFolder(projectId, folder)
+                : projectDocumentRepository.getListByProjectId(projectId);
+        return entities.stream().map(this::toProjectDocumentDto).toList();
+    }
+
+    @Override
+    @Transactional
+    public ProjectDocumentDto addProjectDocument(Long projectId, ProjectDocumentDto input) {
+        checkProjectAccessScope(projectId);
+        ProjectEntity project = projectRepository.getProjectById(projectId);
+
+        ProjectDocumentEntity entity = projectDocumentMapper.toEntity(input);
+        entity.setId(null);
+        entity.setProjectId(projectId);
+        entity.setFolder(input.getFolder() != null ? input.getFolder() : ProjectDocumentFolder.DRAWING);
+        entity.setName(StringUtils.trimToEmpty(input.getName()));
+        entity.setFileName(StringUtils.trimToNull(input.getFileName()));
+        entity.setFileUrl(StringUtils.trimToEmpty(input.getFileUrl()));
+        entity.setVersion(StringUtils.isNotBlank(input.getVersion()) ? input.getVersion().trim() : "v1.0");
+        entity.setDescription(StringUtils.trimToNull(input.getDescription()));
+        entity.setUploadedAt(LocalDateTime.now());
+        entity.setUploadedByName(resolveCurrentUploaderName());
+
+        projectDocumentRepository.save(entity);
+
+        auditLogService.logExplicit(
+                "UPLOAD_PROJECT_DOCUMENT",
+                "PROJECT",
+                "ProjectDocumentEntity",
+                String.valueOf(entity.getId()),
+                null,
+                Map.of(
+                        "folder", entity.getFolder().name(),
+                        "name", entity.getName(),
+                        "version", entity.getVersion()
+                ),
+                "Tải lên tài liệu \"" + entity.getName() + "\" (" + entity.getVersion() + ") vào thư mục "
+                        + entity.getFolder().getLabel() + " cho dự án " + project.getCode(),
+                null
+        );
+
+        return toProjectDocumentDto(entity);
+    }
+
+    @Override
+    @Transactional
+    public ProjectDocumentDto updateProjectDocument(Long projectId, Long documentId, ProjectDocumentDto input) {
+        checkProjectAccessScope(projectId);
+        projectRepository.getProjectById(projectId);
+        ProjectDocumentEntity entity = projectDocumentRepository.findById(documentId)
+                .orElseThrow(() -> BusinessException.exception("CST002"));
+        if (!Objects.equals(entity.getProjectId(), projectId)) {
+            throw BusinessException.exception("CST002");
+        }
+
+        if (input.getFolder() != null) entity.setFolder(input.getFolder());
+        if (StringUtils.isNotBlank(input.getName())) entity.setName(input.getName().trim());
+        if (StringUtils.isNotBlank(input.getFileUrl())) entity.setFileUrl(input.getFileUrl().trim());
+        if (input.getFileName() != null) entity.setFileName(StringUtils.trimToNull(input.getFileName()));
+        if (input.getFileType() != null) entity.setFileType(StringUtils.trimToNull(input.getFileType()));
+        if (input.getFileSize() != null) entity.setFileSize(input.getFileSize());
+        if (StringUtils.isNotBlank(input.getVersion())) entity.setVersion(input.getVersion().trim());
+        entity.setDescription(StringUtils.trimToNull(input.getDescription()));
+        entity.setUploadedAt(LocalDateTime.now());
+        entity.setUploadedByName(resolveCurrentUploaderName());
+
+        projectDocumentRepository.save(entity);
+        return toProjectDocumentDto(entity);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProjectDocument(Long projectId, Long documentId) {
+        checkProjectAccessScope(projectId);
+        projectRepository.getProjectById(projectId);
+        ProjectDocumentEntity entity = projectDocumentRepository.findById(documentId)
+                .orElseThrow(() -> BusinessException.exception("CST002"));
+        if (!Objects.equals(entity.getProjectId(), projectId)) {
+            throw BusinessException.exception("CST002");
+        }
+        projectDocumentRepository.delete(entity);
+    }
+
+    private ProjectDocumentDto toProjectDocumentDto(ProjectDocumentEntity entity) {
+        ProjectDocumentDto dto = projectDocumentMapper.toDto(entity);
+        if (entity.getFolder() != null) {
+            dto.setFolderLabel(entity.getFolder().getLabel());
+        }
+        return dto;
+    }
+
+    private String resolveCurrentUploaderName() {
+        try {
+            Long staffId = getCurrentStaffId();
+            if (staffId != null) {
+                return staffRepository.findById(staffId)
+                        .map(StaffEntity::getName)
+                        .filter(StringUtils::isNotBlank)
+                        .orElseGet(() -> SecurityUtils.getCurrentUserLogin().orElse("Hệ thống"));
+            }
+            return SecurityUtils.getCurrentUserLogin().orElse("Hệ thống");
+        } catch (Exception e) {
+            return "Hệ thống";
+        }
+    }
+
+    // =========================================================================
+    // 2.19: KHỐI LƯỢNG & ĐƠN GIÁ HẠNG MỤC THEO DỰ ÁN
+    // =========================================================================
+
+    @Override
+    @Transactional
+    public List<ProjectCategoryMapDto> saveProjectCategories(Long projectId, List<ProjectCategoryMapDto> categories) {
+        checkProjectAccessScope(projectId);
+        ProjectEntity project = projectRepository.getProjectById(projectId);
+
+        List<ProjectCategoryMapEntity> oldMaps = projectCategoryMapRepository.getListByProjectId(projectId);
+        if (!oldMaps.isEmpty()) {
+            projectCategoryMapRepository.deleteAllInBatch(oldMaps);
+        }
+        saveProjectCategoryMaps(project, categories);
+
+        ProjectDto temp = ProjectDto.builder().id(projectId).build();
+        setProjectCategoryMaps(temp, projectCategoryMapRepository.getListByProjectId(projectId));
+        return temp.getProjectCategoryMaps();
     }
 
 }

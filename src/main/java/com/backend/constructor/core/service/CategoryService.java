@@ -9,7 +9,6 @@ import com.backend.constructor.common.service.GenerateCodeService;
 import com.backend.constructor.common.validator.UniqueValidationService;
 import com.backend.constructor.core.domain.constant.Constants;
 import com.backend.constructor.core.domain.entity.CategoryEntity;
-import com.backend.constructor.core.domain.entity.StaffEntity;
 import com.backend.constructor.core.port.mapper.CategoryMapper;
 import com.backend.constructor.core.port.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +16,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +36,9 @@ public class CategoryService implements CategoryApi {
         generateCodeService.generateCode(input, Constants.DM, CategoryEntity.class);
         input.setId(null);
         CategoryEntity categoryEntity = categoryMapper.toEntity(input);
+        if (categoryEntity.getParentId() != null) {
+            categoryRepository.getCategoryById(categoryEntity.getParentId());
+        }
         uniqueValidationService.validate(categoryEntity);
         categoryRepository.save(categoryEntity);
         return IdResponse.builder().id(categoryEntity.getId()).build();
@@ -43,8 +48,14 @@ public class CategoryService implements CategoryApi {
     @Transactional
     public IdResponse update(CategoryDto input) {
         input.trimData();
-        generateCodeService.generateCode(input, Constants.DM, StaffEntity.class);
+        generateCodeService.generateCode(input, Constants.DM, CategoryEntity.class);
         CategoryEntity categoryEntity = categoryRepository.getCategoryById(input.getId());
+        if (input.getParentId() != null && Objects.equals(input.getParentId(), categoryEntity.getId())) {
+            throw BusinessException.exception("CST002");
+        }
+        if (input.getParentId() != null) {
+            categoryRepository.getCategoryById(input.getParentId());
+        }
         categoryMapper.update(input, categoryEntity);
         uniqueValidationService.validate(categoryEntity);
         categoryRepository.save(categoryEntity);
@@ -65,12 +76,58 @@ public class CategoryService implements CategoryApi {
     @Override
     public CategoryDto getDetail(Long id) {
         CategoryEntity categoryEntity = categoryRepository.getCategoryById(id);
-        return categoryMapper.toDto(categoryEntity);
+        CategoryDto dto = categoryMapper.toDto(categoryEntity);
+        if (categoryEntity.getParentId() != null) {
+            categoryRepository.findById(categoryEntity.getParentId())
+                    .ifPresent(parent -> dto.setParentName(parent.getName()));
+        }
+        return dto;
     }
 
     @Override
     public Page<CategoryDto> getListCategory(CategoryFilterParam param, Pageable pageable) {
         Page<CategoryEntity> pageCategory = categoryRepository.getPageCategory(param, pageable);
-        return pageCategory.map(categoryMapper::toDto);
+        Set<Long> parentIds = pageCategory.getContent().stream()
+                .map(CategoryEntity::getParentId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> parentNames = parentIds.isEmpty()
+                ? Collections.emptyMap()
+                : categoryRepository.findAllByIds(new ArrayList<>(parentIds)).stream()
+                        .collect(Collectors.toMap(CategoryEntity::getId, CategoryEntity::getName));
+        return pageCategory.map(entity -> {
+            CategoryDto dto = categoryMapper.toDto(entity);
+            if (entity.getParentId() != null) {
+                dto.setParentName(parentNames.get(entity.getParentId()));
+            }
+            return dto;
+        });
+    }
+
+    @Override
+    public List<CategoryDto> getTreeCategory() {
+        List<CategoryEntity> all = categoryRepository.findAll();
+        all.sort(Comparator.comparing(CategoryEntity::getSortOrder, Comparator.nullsLast(Integer::compareTo))
+                .thenComparing(CategoryEntity::getId, Comparator.nullsLast(Long::compareTo)));
+
+        Map<Long, CategoryDto> dtoMap = new LinkedHashMap<>();
+        for (CategoryEntity entity : all) {
+            CategoryDto dto = categoryMapper.toDto(entity);
+            dto.setChildren(new ArrayList<>());
+            dtoMap.put(entity.getId(), dto);
+        }
+
+        List<CategoryDto> roots = new ArrayList<>();
+        for (CategoryDto dto : dtoMap.values()) {
+            if (dto.getParentId() != null && dtoMap.containsKey(dto.getParentId())
+                    && !Objects.equals(dto.getParentId(), dto.getId())) {
+                CategoryDto parent = dtoMap.get(dto.getParentId());
+                dto.setParentName(parent.getName());
+                parent.getChildren().add(dto);
+            } else {
+                roots.add(dto);
+            }
+        }
+        return roots;
     }
 }
