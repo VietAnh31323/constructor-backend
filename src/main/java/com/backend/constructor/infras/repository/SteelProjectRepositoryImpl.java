@@ -25,13 +25,17 @@ public class SteelProjectRepositoryImpl extends JpaRepositoryAdapter<SteelProjec
     }
 
     @Override
-    public Page<SteelProjectEntity> getPageSteelProject(String search, Pageable pageable) {
+    public Page<SteelProjectEntity> getPageSteelProject(String search, Long projectId, Pageable pageable) {
         String trimSearch = StringUtils.trimToNull(search);
-        Filter<SteelProjectEntity> filter = Filter.builder()
+        var filterBuilder = Filter.builder()
                 .search()
                 .isContains(SteelProjectEntity_.CODE, trimSearch, FilterFlag.UNACCENT_CASE_SENSITIVE)
                 .isContains(SteelProjectEntity_.NAME, trimSearch, FilterFlag.UNACCENT_CASE_SENSITIVE)
-                .filter()
+                .filter();
+        if (projectId != null) {
+            filterBuilder.isEqual(SteelProjectEntity_.PROJECT_ID, projectId);
+        }
+        Filter<SteelProjectEntity> filter = filterBuilder
                 .pageable(pageable)
                 .withContext(entityManager)
                 .build(SteelProjectEntity.class);

@@ -75,6 +75,11 @@ public class ProjectService implements ProjectApi {
     private final ProjectDocumentRepository projectDocumentRepository;
     private final ProjectDocumentMapper projectDocumentMapper;
     private final ProcessTemplateService processTemplateService;
+    // 2.21 – 2.27
+    private final ProgressCalculationService progressCalculationService;
+    private final TaskWorkflowService taskWorkflowService;
+    private final TaskCollaborationService taskCollaborationService;
+    private final ProjectProgressService projectProgressService;
 
 
     @Override
@@ -442,9 +447,11 @@ public class ProjectService implements ProjectApi {
             }
         }
 
-        // Load phases (project_progress)
+        // Load phases (project_progress) – 2.21: sắp xếp theo sort_order
         List<ProjectProgressEntity> ppEntities = new ArrayList<>(projectProgressRepository.getListByProjectId(projectId));
-        ppEntities.sort(Comparator.comparing(ProjectProgressEntity::getId));
+        ppEntities.sort(Comparator
+                .comparing((ProjectProgressEntity p) -> p.getSortOrder() != null ? p.getSortOrder() : Integer.MAX_VALUE)
+                .thenComparing(ProjectProgressEntity::getId));
 
         Set<Long> ppIds = ppEntities.stream().map(ProjectProgressEntity::getId).collect(Collectors.toSet());
         Set<Long> progressIds = ppEntities.stream()
@@ -480,6 +487,12 @@ public class ProjectService implements ProjectApi {
         Set<Long> allTaskIds = new HashSet<>(rootTaskIds);
         childTasks.forEach(ct -> addIfNotNull(allTaskIds, ct.getId()));
 
+        // Việc con cấp 3 trở xuống chỉ dùng để biết việc con có còn việc con hay không
+        Set<Long> grandParentIds = childTasks.isEmpty()
+                ? Collections.emptySet()
+                : taskRepository.getListTaskByParentIds(childTasks.stream().map(TaskEntity::getId).collect(Collectors.toSet()))
+                        .stream().map(TaskEntity::getParentId).filter(Objects::nonNull).collect(Collectors.toSet());
+
         List<TaskStaffMapEntity> allTaskStaffMaps = allTaskIds.isEmpty()
                 ? Collections.emptyList()
                 : taskStaffMapRepository.getListByTaskIds(allTaskIds);
@@ -494,7 +507,10 @@ public class ProjectService implements ProjectApi {
                 : staffRepository.getMapSimpleStaffByIds(allStaffIds);
 
         Map<Long, List<CodeNameResponse>> assigneesByTaskId = new HashMap<>();
+        Map<Long, Set<Long>> assigneeIdsByTaskId = new HashMap<>();
         for (TaskStaffMapEntity m : allTaskStaffMaps) {
+            if (m.getTaskId() == null || m.getStaffId() == null) continue;
+            assigneeIdsByTaskId.computeIfAbsent(m.getTaskId(), k -> new HashSet<>()).add(m.getStaffId());
             CodeNameResponse s = staffSimpleMap.get(m.getStaffId());
             if (s != null) {
                 assigneesByTaskId.computeIfAbsent(m.getTaskId(), k -> new ArrayList<>()).add(s);
@@ -508,16 +524,25 @@ public class ProjectService implements ProjectApi {
             }
         }
 
+        // 2.23 / 2.25 / 2.27: ngữ cảnh workflow & số lượng bình luận / báo cáo hiện trường
+        GanttContext ctx = new GanttContext(
+                project.getManagerId(),
+                taskWorkflowService.currentActor(),
+                staffSimpleMap,
+                assigneesByTaskId,
+                assigneeIdsByTaskId,
+                grandParentIds,
+                taskCollaborationService.countCommentsByTaskIds(allTaskIds),
+                taskCollaborationService.countSiteReportsByTaskIds(allTaskIds),
+                today
+        );
+
         List<LocalDate> candidateDates = new ArrayList<>();
         if (project.getSignDate() != null) candidateDates.add(project.getSignDate());
         if (project.getDeliveryDate() != null) candidateDates.add(project.getDeliveryDate());
         if (project.getActualHandoverDate() != null) candidateDates.add(project.getActualHandoverDate());
 
-        int totalTasksCount = 0;
-        int completedTasksCount = 0;
-        int inProgressTasksCount = 0;
-        int notStartedTasksCount = 0;
-        int overdueTasksCount = 0;
+        GanttKpi kpi = new GanttKpi();
 
         List<ProjectGanttDto.PhaseItem> phaseItems = new ArrayList<>();
         for (ProjectProgressEntity pp : ppEntities) {
@@ -527,9 +552,10 @@ public class ProjectService implements ProjectApi {
             List<ProjectGanttDto.TaskItem> phaseTaskDtos = new ArrayList<>();
             LocalDate phaseStart = null;
             LocalDate phaseEnd = null;
-            int phaseLeafTotal = 0;
             int phaseLeafCompleted = 0;
-            BigDecimal phasePctSum = BigDecimal.ZERO;
+            int phaseOverdue = 0;
+            BigDecimal phaseWeighted = BigDecimal.ZERO;
+            BigDecimal phaseWeightSum = BigDecimal.ZERO;
 
             List<TaskEntity> sortedRoots = mappedTaskIds.stream()
                     .map(rootTaskMap::get)
@@ -547,23 +573,16 @@ public class ProjectService implements ProjectApi {
 
                 List<ProjectGanttDto.TaskItem> subDtos = new ArrayList<>();
                 for (TaskEntity sub : subs) {
-                    ProjectGanttDto.TaskItem subItem = toGanttTaskItem(
-                            sub, pp.getId(), staffSimpleMap, assigneesByTaskId, Collections.emptyList(), today
-                    );
+                    ProjectGanttDto.TaskItem subItem = toGanttTaskItem(sub, pp.getId(), ctx, Collections.emptyList());
                     subDtos.add(subItem);
                     if (subItem.getStartDate() != null) candidateDates.add(subItem.getStartDate());
                     if (subItem.getEndDate() != null) candidateDates.add(subItem.getEndDate());
-
-                    totalTasksCount++;
-                    if (subItem.getState() == TaskState.COMPLETED) completedTasksCount++;
-                    else if (subItem.getState() == TaskState.IN_PROGRESS) inProgressTasksCount++;
-                    else notStartedTasksCount++;
-                    if (subItem.isOverdue()) overdueTasksCount++;
+                    if (subItem.getActualEndDate() != null) candidateDates.add(subItem.getActualEndDate());
+                    kpi.add(subItem);
+                    if (subItem.isOverdue()) phaseOverdue++;
                 }
 
-                ProjectGanttDto.TaskItem rootItem = toGanttTaskItem(
-                        rootTask, pp.getId(), staffSimpleMap, assigneesByTaskId, subDtos, today
-                );
+                ProjectGanttDto.TaskItem rootItem = toGanttTaskItem(rootTask, pp.getId(), ctx, subDtos);
 
                 // If root task has no explicit dates, derive from subTasks
                 if (rootItem.getStartDate() == null && !subDtos.isEmpty()) {
@@ -593,39 +612,54 @@ public class ProjectService implements ProjectApi {
                         phaseEnd = rootItem.getEndDate();
                     }
                 }
+                if (rootItem.getActualEndDate() != null) candidateDates.add(rootItem.getActualEndDate());
 
                 // Count root task in KPIs if it has no subTasks (leaf work item)
                 if (subDtos.isEmpty()) {
-                    totalTasksCount++;
-                    if (rootItem.getState() == TaskState.COMPLETED) completedTasksCount++;
-                    else if (rootItem.getState() == TaskState.IN_PROGRESS) inProgressTasksCount++;
-                    else notStartedTasksCount++;
-                    if (rootItem.isOverdue()) overdueTasksCount++;
+                    kpi.add(rootItem);
+                    if (rootItem.isOverdue()) phaseOverdue++;
                 }
 
-                phaseLeafTotal++;
                 if (rootItem.getState() == TaskState.COMPLETED) {
                     phaseLeafCompleted++;
                 }
-                phasePctSum = phasePctSum.add(rootItem.getProgressPercent() != null ? rootItem.getProgressPercent() : BigDecimal.ZERO);
+                BigDecimal w = ProgressCalculationService.weightOf(rootItem.getWeight());
+                phaseWeighted = phaseWeighted.add((rootItem.getProgressPercent() != null ? rootItem.getProgressPercent() : BigDecimal.ZERO).multiply(w));
+                phaseWeightSum = phaseWeightSum.add(w);
 
                 phaseTaskDtos.add(rootItem);
             }
 
-            BigDecimal phasePct = phaseLeafTotal > 0
-                    ? phasePctSum.divide(BigDecimal.valueOf(phaseLeafTotal), 1, RoundingMode.HALF_UP)
+            BigDecimal phasePct = phaseWeightSum.compareTo(BigDecimal.ZERO) > 0
+                    ? phaseWeighted.divide(phaseWeightSum, 1, RoundingMode.HALF_UP)
                     : BigDecimal.ZERO;
+
+            LocalDate plannedStart = pp.getPlannedStartDate() != null ? pp.getPlannedStartDate() : phaseStart;
+            LocalDate plannedEnd = pp.getPlannedEndDate() != null ? pp.getPlannedEndDate() : phaseEnd;
+            if (pp.getPlannedStartDate() != null) candidateDates.add(pp.getPlannedStartDate());
+            if (pp.getPlannedEndDate() != null) candidateDates.add(pp.getPlannedEndDate());
+            boolean phaseDone = !phaseTaskDtos.isEmpty() && phaseLeafCompleted == phaseTaskDtos.size();
 
             phaseItems.add(ProjectGanttDto.PhaseItem.builder()
                     .projectProgressId(pp.getId())
                     .progressId(pp.getProgressId())
                     .progressCode(progInfo != null ? progInfo.getCode() : null)
                     .progressName(progInfo != null ? progInfo.getName() : "Giai đoạn thi công")
-                    .startDate(phaseStart)
-                    .endDate(phaseEnd)
+                    .startDate(plannedStart)
+                    .endDate(plannedEnd)
                     .progressPercent(phasePct)
                     .taskCount(phaseTaskDtos.size())
                     .completedTaskCount(phaseLeafCompleted)
+                    .sortOrder(pp.getSortOrder())
+                    .plannedStartDate(pp.getPlannedStartDate())
+                    .plannedEndDate(pp.getPlannedEndDate())
+                    .actualStartDate(pp.getActualStartDate())
+                    .actualEndDate(pp.getActualEndDate())
+                    .weight(ProgressCalculationService.weightOf(pp.getWeight()))
+                    .note(pp.getNote())
+                    .overdueTaskCount(phaseOverdue)
+                    .delayDays(ScheduleStatusUtil.delayDays(plannedEnd, pp.getActualEndDate(), phaseDone, today))
+                    .scheduleStatus(ScheduleStatusUtil.compute(plannedEnd, pp.getActualEndDate(), phaseDone, phasePct, today))
                     .tasks(phaseTaskDtos)
                     .build());
         }
@@ -732,6 +766,17 @@ public class ProjectService implements ProjectApi {
             maxDate = minDate.plusDays(21);
         }
 
+        boolean projectDone = kpi.total > 0 && kpi.completed == kpi.total;
+        BigDecimal projectPct = project.getProgressPercent() != null ? project.getProgressPercent() : BigDecimal.ZERO;
+        LocalDate projectPlannedEnd = project.getDeliveryDate() != null
+                ? project.getDeliveryDate()
+                : phaseItems.stream().map(ProjectGanttDto.PhaseItem::getEndDate).filter(Objects::nonNull).max(LocalDate::compareTo).orElse(null);
+        LocalDate projectActualEnd = project.getActualHandoverDate();
+        String projectSchedule = ScheduleStatusUtil.compute(projectPlannedEnd, projectActualEnd, projectDone, projectPct, today);
+        if (kpi.overdue > 0 && ScheduleStatusUtil.ON_TRACK.equals(projectSchedule)) {
+            projectSchedule = ScheduleStatusUtil.AT_RISK;
+        }
+
         return ProjectGanttDto.builder()
                 .projectId(project.getId())
                 .projectCode(project.getCode())
@@ -740,7 +785,7 @@ public class ProjectService implements ProjectApi {
                 .managerName(managerName)
                 .state(currentState)
                 .stateLabel(currentState.getLabel())
-                .progressPercent(project.getProgressPercent() != null ? project.getProgressPercent() : BigDecimal.ZERO)
+                .progressPercent(projectPct)
                 .signDate(project.getSignDate())
                 .deliveryDate(project.getDeliveryDate())
                 .actualHandoverDate(project.getActualHandoverDate())
@@ -748,11 +793,16 @@ public class ProjectService implements ProjectApi {
                 .timelineStartDate(minDate.minusDays(3))
                 .timelineEndDate(maxDate.plusDays(5))
                 .totalPhases(phaseItems.size())
-                .totalTasks(totalTasksCount)
-                .completedTasks(completedTasksCount)
-                .inProgressTasks(inProgressTasksCount)
-                .notStartedTasks(notStartedTasksCount)
-                .overdueTasks(overdueTasksCount)
+                .totalTasks(kpi.total)
+                .completedTasks(kpi.completed)
+                .inProgressTasks(kpi.inProgress)
+                .notStartedTasks(kpi.notStarted)
+                .overdueTasks(kpi.overdue)
+                .pendingReviewTasks(kpi.pendingReview)
+                .returnedTasks(kpi.returned)
+                .atRiskTasks(kpi.atRisk)
+                .scheduleStatus(projectSchedule)
+                .delayDays(ScheduleStatusUtil.delayDays(projectPlannedEnd, projectActualEnd, projectDone, today))
                 .phases(phaseItems)
                 .milestones(milestones)
                 .build();
@@ -764,6 +814,10 @@ public class ProjectService implements ProjectApi {
         ProjectEntity project = projectRepository.getProjectById(projectId);
         if (input != null) {
             input.trimData();
+        }
+        if (input != null && input.getPlannedStartDate() != null && input.getPlannedEndDate() != null
+                && input.getPlannedEndDate().isBefore(input.getPlannedStartDate())) {
+            throw BusinessException.exception("CST063");
         }
         Long targetProgressId = input != null ? input.getProgressId() : null;
         if (targetProgressId == null) {
@@ -783,9 +837,21 @@ public class ProjectService implements ProjectApi {
             progressRepository.getProgressById(targetProgressId);
         }
 
+        int nextOrder = projectProgressRepository.getListByProjectId(projectId).stream()
+                .map(ProjectProgressEntity::getSortOrder)
+                .filter(Objects::nonNull)
+                .max(Integer::compareTo)
+                .orElse(0) + 1;
+
         ProjectProgressEntity ppEntity = ProjectProgressEntity.builder()
                 .projectId(project.getId())
                 .progressId(targetProgressId)
+                .sortOrder(nextOrder)
+                .plannedStartDate(input.getPlannedStartDate())
+                .plannedEndDate(input.getPlannedEndDate())
+                .weight(ProgressCalculationService.weightOf(input.getWeight()))
+                .progressPercent(BigDecimal.ZERO)
+                .note(input.getDescription())
                 .build();
         projectProgressRepository.save(ppEntity);
         return IdResponse.builder().id(ppEntity.getId()).build();
@@ -800,13 +866,8 @@ public class ProjectService implements ProjectApi {
         if (!Objects.equals(ppEntity.getProjectId(), projectId)) {
             throw BusinessException.exception("CST002");
         }
-        List<ProjectProgressTaskMapEntity> maps = projectProgressTaskMapRepository
-                .getListByProjectProgressIds(Set.of(projectProgressId));
-        if (!maps.isEmpty()) {
-            projectProgressTaskMapRepository.deleteAll(maps);
-        }
-        projectProgressRepository.delete(ppEntity);
-        recalculateProjectProgressPercent(projectId);
+        // 2.21: xóa giai đoạn kèm cây công việc, đánh lại thứ tự & tính lại tiến độ
+        projectProgressService.deletePhase(projectProgressId);
     }
 
     @Override
@@ -818,15 +879,10 @@ public class ProjectService implements ProjectApi {
             throw BusinessException.exception("ERROR_0001");
         }
 
-        TaskState initialState = input.getState() != null ? input.getState() : TaskState.NOT_STARTED;
-        BigDecimal pct = input.getProgressPercent();
-        if (pct == null) {
-            pct = switch (initialState) {
-                case COMPLETED -> BigDecimal.valueOf(100);
-                case IN_PROGRESS -> BigDecimal.valueOf(50);
-                default -> BigDecimal.ZERO;
-            };
-        }
+        // 2.23: Công việc mới chỉ có thể ở trạng thái Chưa làm / Đang làm (Hoàn thành phải qua duyệt)
+        TaskState initialState = input.getState() == TaskState.IN_PROGRESS ? TaskState.IN_PROGRESS : TaskState.NOT_STARTED;
+        // 2.22: % tiến độ do hệ thống tự tính từ trạng thái, không nhận giá trị nhập tay
+        BigDecimal pct = BigDecimal.valueOf(initialState.getDefaultPercent());
 
         Long resolvedReviewerId = input.getReviewerId();
         if (resolvedReviewerId == null) {
@@ -844,6 +900,8 @@ public class ProjectService implements ProjectApi {
                 .priorityLevel(input.getPriorityLevel() != null ? input.getPriorityLevel() : PriorityLevel.MEDIUM)
                 .state(initialState)
                 .progressPercent(pct)
+                .weight(ProgressCalculationService.weightOf(input.getWeight()))
+                .actualStartDate(initialState == TaskState.IN_PROGRESS ? LocalDate.now() : null)
                 .reviewerId(resolvedReviewerId)
                 .parentId(input.getParentTaskId())
                 .build();
@@ -866,22 +924,7 @@ public class ProjectService implements ProjectApi {
         }
 
         if (input.getParentTaskId() != null) {
-            TaskEntity parentTask = taskRepository.getTaskById(input.getParentTaskId());
-            List<TaskEntity> siblings = taskRepository.getListTaskByParentId(parentTask.getId());
-            if (!siblings.isEmpty()) {
-                long doneCount = siblings.stream().filter(s -> s.getState() == TaskState.COMPLETED).count();
-                BigDecimal parentPct = BigDecimal.valueOf((double) doneCount * 100.0 / siblings.size())
-                        .setScale(2, RoundingMode.HALF_UP);
-                parentTask.setProgressPercent(parentPct);
-                if (doneCount == siblings.size()) {
-                    parentTask.setState(TaskState.COMPLETED);
-                } else if (siblings.stream().anyMatch(s -> s.getState() != TaskState.NOT_STARTED)) {
-                    parentTask.setState(TaskState.IN_PROGRESS);
-                } else {
-                    parentTask.setState(TaskState.NOT_STARTED);
-                }
-                taskRepository.save(parentTask);
-            }
+            taskRepository.getTaskById(input.getParentTaskId());
         } else {
             Long ppId = input.getProjectProgressId();
             if (ppId == null) {
@@ -899,31 +942,71 @@ public class ProjectService implements ProjectApi {
             projectProgressTaskMapRepository.save(mapEntity);
         }
 
-        recalculateProjectProgressPercent(projectId);
+        // 2.22: tổng hợp lại việc cha → giai đoạn → dự án
+        progressCalculationService.recalculateProject(projectId);
         return IdResponse.builder().id(taskEntity.getId()).build();
+    }
+
+    /** Ngữ cảnh dựng cây Gantt (tính 1 lần cho toàn bộ dự án). */
+    private record GanttContext(Long projectManagerId,
+                                TaskWorkflowService.Actor actor,
+                                Map<Long, CodeNameResponse> staffMap,
+                                Map<Long, List<CodeNameResponse>> assigneesMap,
+                                Map<Long, Set<Long>> assigneeIdsMap,
+                                Set<Long> deeperParentIds,
+                                Map<Long, Long> commentCounts,
+                                Map<Long, Long> siteReportCounts,
+                                LocalDate today) {
+    }
+
+    /** Bộ đếm KPI công việc lá trên Gantt. */
+    private static final class GanttKpi {
+        int total;
+        int completed;
+        int inProgress;
+        int notStarted;
+        int pendingReview;
+        int returned;
+        int overdue;
+        int atRisk;
+
+        void add(ProjectGanttDto.TaskItem item) {
+            total++;
+            switch (item.getState()) {
+                case COMPLETED -> completed++;
+                case IN_PROGRESS -> inProgress++;
+                case PENDING_REVIEW -> pendingReview++;
+                case RETURNED -> returned++;
+                default -> notStarted++;
+            }
+            if (item.isOverdue()) overdue++;
+            if (ScheduleStatusUtil.AT_RISK.equals(item.getScheduleStatus())) atRisk++;
+        }
     }
 
     private ProjectGanttDto.TaskItem toGanttTaskItem(TaskEntity entity,
                                                      Long projectProgressId,
-                                                     Map<Long, CodeNameResponse> staffMap,
-                                                     Map<Long, List<CodeNameResponse>> assigneesMap,
-                                                     List<ProjectGanttDto.TaskItem> subTasks,
-                                                     LocalDate today) {
+                                                     GanttContext ctx,
+                                                     List<ProjectGanttDto.TaskItem> subTasks) {
+        LocalDate today = ctx.today();
         TaskState st = entity.getState() != null ? entity.getState() : TaskState.NOT_STARTED;
         BigDecimal pct = entity.getProgressPercent();
         if (pct == null) {
-            pct = st == TaskState.COMPLETED ? BigDecimal.valueOf(100) : BigDecimal.ZERO;
+            pct = BigDecimal.valueOf(st.getDefaultPercent());
         }
         long duration = 1L;
         if (entity.getStartDate() != null && entity.getEndDate() != null) {
             duration = Math.max(1L, ChronoUnit.DAYS.between(entity.getStartDate(), entity.getEndDate()) + 1L);
         }
+        boolean completed = st == TaskState.COMPLETED;
         Long remain = null;
         boolean overdue = false;
         if (entity.getEndDate() != null) {
             remain = ChronoUnit.DAYS.between(today, entity.getEndDate());
-            overdue = st != TaskState.COMPLETED && entity.getEndDate().isBefore(today);
+            overdue = !completed && entity.getEndDate().isBefore(today);
         }
+        boolean hasChildren = (subTasks != null && !subTasks.isEmpty()) || ctx.deeperParentIds().contains(entity.getId());
+        Set<Long> assigneeIds = ctx.assigneeIdsMap().getOrDefault(entity.getId(), Collections.emptySet());
 
         return ProjectGanttDto.TaskItem.builder()
                 .id(entity.getId())
@@ -938,29 +1021,32 @@ public class ProjectService implements ProjectApi {
                 .remainDays(remain)
                 .progressPercent(pct)
                 .state(st)
+                .stateLabel(st.getLabel())
                 .priorityLevel(entity.getPriorityLevel())
                 .overdue(overdue)
-                .reviewer(entity.getReviewerId() != null ? staffMap.get(entity.getReviewerId()) : null)
-                .assignees(assigneesMap.getOrDefault(entity.getId(), Collections.emptyList()))
+                .reviewer(entity.getReviewerId() != null ? ctx.staffMap().get(entity.getReviewerId()) : null)
+                .assignees(ctx.assigneesMap().getOrDefault(entity.getId(), Collections.emptyList()))
+                .weight(ProgressCalculationService.weightOf(entity.getWeight()))
+                .actualStartDate(entity.getActualStartDate())
+                .actualEndDate(entity.getActualEndDate())
+                .delayDays(ScheduleStatusUtil.delayDays(entity.getEndDate(), entity.getActualEndDate(), completed, today))
+                .scheduleStatus(ScheduleStatusUtil.compute(entity.getEndDate(), entity.getActualEndDate(), completed, pct, today))
+                .returnReason(entity.getReturnReason())
+                .submittedAt(entity.getSubmittedAt())
+                .reviewedAt(entity.getReviewedAt())
+                .hasChildren(hasChildren)
+                .canReview(taskWorkflowService.isReviewer(entity, ctx.projectManagerId(), ctx.actor()))
+                .allowedNextStates(taskWorkflowService.allowedNextStates(entity, hasChildren, assigneeIds,
+                        ctx.projectManagerId(), ctx.actor()))
+                .siteReportCount(ctx.siteReportCounts().getOrDefault(entity.getId(), 0L))
+                .commentCount(ctx.commentCounts().getOrDefault(entity.getId(), 0L))
                 .subTasks(subTasks)
                 .build();
     }
 
     private void recalculateProjectProgressPercent(Long projectId) {
-        ProjectEntity project = projectRepository.getProjectById(projectId);
-        List<TaskEntity> rootTasks = taskRepository.getListTaskByProjectId(projectId);
-        if (rootTasks.isEmpty()) {
-            return;
-        }
-        BigDecimal sum = rootTasks.stream()
-                .map(t -> {
-                    if (t.getProgressPercent() != null) return t.getProgressPercent();
-                    return t.getState() == TaskState.COMPLETED ? BigDecimal.valueOf(100) : BigDecimal.ZERO;
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal avg = sum.divide(BigDecimal.valueOf(rootTasks.size()), 2, RoundingMode.HALF_UP);
-        project.setProgressPercent(avg);
-        projectRepository.save(project);
+        // 2.22: dùng chung bộ tính tiến độ có trọng số
+        progressCalculationService.recalculateProject(projectId);
     }
 
     // ==================== STATE MACHINE & HELPERS ====================

@@ -34,4 +34,6 @@ public class SteelProjectEntity extends BaseEntity {
     private LocalDate deliveryDate;
 
     private String description;
+
+    private Long projectId;
 }

@@ -12,7 +12,6 @@ import com.backend.constructor.common.service.GenerateCodeService;
 import com.backend.constructor.common.validator.UniqueValidationService;
 import com.backend.constructor.core.domain.constant.Constants;
 import com.backend.constructor.core.domain.entity.ProjectEntity;
-import com.backend.constructor.core.domain.entity.StaffEntity;
 import com.backend.constructor.core.domain.entity.TaskEntity;
 import com.backend.constructor.core.domain.entity.TaskStaffMapEntity;
 import com.backend.constructor.core.domain.enums.TaskState;
@@ -29,6 +28,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -48,6 +49,8 @@ public class TaskService implements TaskApi {
     private final StaffRepository staffRepository;
     private final InternalTaskService internalTaskService;
     private final ProjectRepository projectRepository;
+    private final ProgressCalculationService progressCalculationService;
+    private final TaskWorkflowService taskWorkflowService;
 
     @Override
     @Transactional
@@ -57,6 +60,10 @@ public class TaskService implements TaskApi {
         input.setId(null);
         TaskEntity taskEntity = taskMapper.toEntity(input);
         taskEntity.setState(TaskState.NOT_STARTED);
+        // 2.22: % tiến độ do hệ thống tính – không nhận giá trị nhập tay
+        taskEntity.setProgressPercent(BigDecimal.ZERO);
+        taskEntity.setWeight(ProgressCalculationService.weightOf(input.getWeight()));
+        clearSystemFields(taskEntity);
         uniqueValidationService.validate(taskEntity);
         if (input.getReviewer() != null && input.getReviewer().getId() != null) {
             taskEntity.setReviewerId(input.getReviewer().getId());
@@ -66,6 +73,7 @@ public class TaskService implements TaskApi {
         }
         taskRepository.save(taskEntity);
         saveTaskStaffMap(taskEntity.getId(), input.getTaskStaffMaps());
+        progressCalculationService.recalculateFromTask(taskEntity.getId());
         return IdResponse.builder().id(taskEntity.getId()).build();
     }
 
@@ -78,12 +86,37 @@ public class TaskService implements TaskApi {
         }
         input.trimData();
         generateCodeService.generateCode(input, Constants.CV, TaskEntity.class);
+
+        // Giữ nguyên các trường do hệ thống quản lý
+        BigDecimal oldPct = taskEntity.getProgressPercent();
+        LocalDate oldActualStart = taskEntity.getActualStartDate();
+        LocalDate oldActualEnd = taskEntity.getActualEndDate();
+        LocalDateTime oldSubmitted = taskEntity.getSubmittedAt();
+        LocalDateTime oldReviewed = taskEntity.getReviewedAt();
+        Long oldReviewedBy = taskEntity.getReviewedById();
+        String oldReturnReason = taskEntity.getReturnReason();
+        LocalDateTime oldNotified = taskEntity.getOverdueNotifiedAt();
+
         taskMapper.update(input, taskEntity);
         taskEntity.setState(TaskState.NOT_STARTED);
+        taskEntity.setProgressPercent(oldPct);
+        taskEntity.setActualStartDate(oldActualStart);
+        taskEntity.setActualEndDate(oldActualEnd);
+        taskEntity.setSubmittedAt(oldSubmitted);
+        taskEntity.setReviewedAt(oldReviewed);
+        taskEntity.setReviewedById(oldReviewedBy);
+        taskEntity.setReturnReason(oldReturnReason);
+        taskEntity.setOverdueNotifiedAt(oldNotified);
+        taskEntity.setWeight(ProgressCalculationService.weightOf(input.getWeight()));
+        if (input.getReviewer() != null && input.getReviewer().getId() != null) {
+            taskEntity.setReviewerId(input.getReviewer().getId());
+        }
+
         uniqueValidationService.validate(taskEntity);
         taskRepository.save(taskEntity);
         taskStaffMapRepository.deleteAllByTaskId(taskEntity.getId());
         saveTaskStaffMap(taskEntity.getId(), input.getTaskStaffMaps());
+        progressCalculationService.recalculateFromTask(taskEntity.getId());
         return IdResponse.builder().id(taskEntity.getId()).build();
     }
 
@@ -94,6 +127,7 @@ public class TaskService implements TaskApi {
         if (!TaskState.NOT_STARTED.equals(taskEntity.getState())) {
             throw BusinessException.exception("CST018");
         }
+        Long projectId = progressCalculationService.resolveProjectIdOfTask(id);
         List<TaskEntity> taskEntities = taskRepository.getListTaskByParentId(taskEntity.getId());
         Set<Long> taskIds = new HashSet<>();
         addIfNotNull(taskIds, taskEntity.getId());
@@ -103,6 +137,9 @@ public class TaskService implements TaskApi {
         taskStaffMapRepository.deleteAllByTaskIds(taskIds);
         taskRepository.deleteAll(taskEntities);
         taskRepository.delete(taskEntity);
+        if (projectId != null) {
+            progressCalculationService.recalculateProject(projectId);
+        }
     }
 
     @Override
@@ -118,6 +155,21 @@ public class TaskService implements TaskApi {
         TaskDto taskDto = taskMapper.toDto(taskEntity);
         taskDto.setReviewer(getData(staffMap, taskEntity.getReviewerId()));
         taskDto.setTaskStaffMaps(getTaskStaffMaps(taskStaffMapEntities, staffMap));
+
+        // 2.23: Các bước chuyển hợp lệ với người dùng hiện tại
+        boolean hasChildren = !taskRepository.getListTaskByParentId(taskEntity.getId()).isEmpty();
+        Long projectId = progressCalculationService.resolveProjectIdOfTask(taskEntity.getId());
+        Long pmId = projectId != null
+                ? projectRepository.findById(projectId).map(ProjectEntity::getManagerId).orElse(null)
+                : null;
+        Set<Long> assigneeIds = taskStaffMapEntities.stream()
+                .map(TaskStaffMapEntity::getStaffId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        TaskWorkflowService.Actor actor = taskWorkflowService.currentActor();
+        taskDto.setHasChildren(hasChildren);
+        taskDto.setCanReview(taskWorkflowService.isReviewer(taskEntity, pmId, actor));
+        taskDto.setAllowedNextStates(taskWorkflowService.allowedNextStates(taskEntity, hasChildren, assigneeIds, pmId, actor));
         return taskDto;
     }
 
@@ -137,31 +189,24 @@ public class TaskService implements TaskApi {
         return taskEntities.stream().map(entity -> buildTaskOutput(entity, dataCollect)).toList();
     }
 
+    /**
+     * 2.23: Chuyển trạng thái theo workflow (Chưa làm → Đang làm → Chờ duyệt → Hoàn thành / Trả lại).
+     * % tiến độ việc cha / giai đoạn / dự án được tự tính lại (2.22).
+     */
     @Override
     @Transactional
     public void updateState(UpdateStateDto input) {
-        TaskEntity task = taskRepository.getTaskById(input.getId());
-        if (input.getState() == null) throw BusinessException.exception("CST019");
-        task.setState(input.getState());
-        if (TaskState.COMPLETED.equals(input.getState())) {
-            task.setProgressPercent(BigDecimal.valueOf(100));
-        } else if (TaskState.NOT_STARTED.equals(input.getState())) {
-            task.setProgressPercent(BigDecimal.ZERO);
-        } else if (TaskState.IN_PROGRESS.equals(input.getState())) {
-            if (task.getProgressPercent() == null
-                    || task.getProgressPercent().compareTo(BigDecimal.ZERO) <= 0
-                    || task.getProgressPercent().compareTo(BigDecimal.valueOf(100)) >= 0) {
-                task.setProgressPercent(BigDecimal.valueOf(50));
-            }
-        }
-        taskRepository.save(task);
-        if (task.getParentId() != null) {
-            TaskEntity parentTask = taskRepository.getTaskById(task.getParentId());
-            syncStateParentTask(parentTask);
-            syncStateProjectTask(parentTask);
-            return;
-        }
-        syncStateProjectTask(task);
+        taskWorkflowService.transition(input.getId(), input.getState(), input.getReason());
+    }
+
+    private void clearSystemFields(TaskEntity entity) {
+        entity.setActualStartDate(null);
+        entity.setActualEndDate(null);
+        entity.setSubmittedAt(null);
+        entity.setReviewedAt(null);
+        entity.setReviewedById(null);
+        entity.setReturnReason(null);
+        entity.setOverdueNotifiedAt(null);
     }
 
     private void saveTaskStaffMap(Long taskId,
@@ -197,64 +242,5 @@ public class TaskService implements TaskApi {
         TaskOutput taskOutput = taskMapper.toOutput(taskEntity);
         taskOutput.setStaffs(getData(dataCollect.getStaffSimpleListMap(), taskEntity.getId()));
         return taskOutput;
-    }
-
-    private void syncStateParentTask(TaskEntity parentTask) {
-        if (Objects.isNull(parentTask)) return;
-        List<TaskEntity> children = taskRepository.getListTaskByParentId(parentTask.getId());
-        if (children.isEmpty()) return;
-        TaskState newState = getTaskState(children);
-        parentTask.setState(newState);
-        parentTask.setProgressPercent(calculateProgress(children));
-
-        taskRepository.save(parentTask);
-    }
-
-    private TaskState getTaskState(List<TaskEntity> taskEntities) {
-        if (taskEntities == null || taskEntities.isEmpty()) {
-            return TaskState.NOT_STARTED;
-        }
-
-        boolean hasNotStarted = false;
-        boolean hasCompleted = false;
-
-        for (TaskEntity child : taskEntities) {
-            TaskState s = child.getState();
-            if (TaskState.IN_PROGRESS.equals(s)) {
-                return TaskState.IN_PROGRESS;
-            }
-            if (TaskState.NOT_STARTED.equals(s)) {
-                hasNotStarted = true;
-            } else if (TaskState.COMPLETED.equals(s)) {
-                hasCompleted = true;
-            }
-            if (hasNotStarted && hasCompleted) {
-                return TaskState.IN_PROGRESS;
-            }
-        }
-        if (hasNotStarted) {
-            return TaskState.NOT_STARTED;
-        }
-        return TaskState.COMPLETED;
-    }
-
-    private void syncStateProjectTask(TaskEntity parentTask) {
-        ProjectEntity projectEntity = projectRepository.getProjectByTaskId(parentTask.getId());
-        if (Objects.isNull(projectEntity)) return;
-        List<TaskEntity> taskEntities = taskRepository.getListTaskByProjectId(projectEntity.getId());
-        projectEntity.setProgressPercent(calculateProgress(taskEntities));
-        projectRepository.save(projectEntity);
-    }
-
-    private BigDecimal calculateProgress(List<TaskEntity> taskEntities) {
-        if (taskEntities == null || taskEntities.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-        long completedCount = taskEntities.stream()
-                .filter(t -> TaskState.COMPLETED.equals(t.getState()))
-                .count();
-        double progress = (double) completedCount / taskEntities.size() * 100;
-        // Sử dụng setScale để làm tròn (ví dụ 2 chữ số thập phân) nếu cần
-        return BigDecimal.valueOf(progress);
     }
 }

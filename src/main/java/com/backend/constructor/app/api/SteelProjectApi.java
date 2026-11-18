@@ -18,5 +18,8 @@ public interface SteelProjectApi {
     SteelProjectDto getDetail(Long id);
 
     @PreAuthorize("hasAnyAuthority('MATERIAL_VIEW', 'PROJECT_VIEW', 'SCOPE_ADMIN')")
-    Page<SteelProjectOutput> getListSteelProject(String search, Pageable pageable);
+    Page<SteelProjectOutput> getListSteelProject(String search, Long projectId, Pageable pageable);
+
+    @PreAuthorize("hasAnyAuthority('MATERIAL_MANAGE', 'PROJECT_UPDATE', 'SCOPE_ADMIN')")
+    void delete(Long id);
 }

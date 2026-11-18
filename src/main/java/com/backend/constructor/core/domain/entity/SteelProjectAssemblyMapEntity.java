@@ -5,6 +5,7 @@ import com.backend.constructor.core.domain.converter.LongListConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Setter
@@ -28,4 +29,12 @@ public class SteelProjectAssemblyMapEntity extends BaseEntity {
 
     @Convert(converter = LongListConverter.class)
     private List<Long> steelIds;
+
+    private Integer sortOrder;
+
+    private String note;
+
+    private BigDecimal totalLength;
+
+    private BigDecimal totalWeight;
 }

@@ -8,7 +8,9 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.apache.commons.lang3.StringUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -40,6 +42,20 @@ public class TaskDto {
 
     @Valid
     private List<TaskStaffMapDto> taskStaffMaps;
+
+    // 2.22: Trọng số tổng hợp tiến độ (mặc định 1)
+    private BigDecimal weight;
+
+    // 2.22 / 2.23 / 2.26: Thông tin chỉ đọc do hệ thống tính
+    private BigDecimal progressPercent;
+    private LocalDate actualStartDate;
+    private LocalDate actualEndDate;
+    private String returnReason;
+    private LocalDateTime submittedAt;
+    private LocalDateTime reviewedAt;
+    private List<TaskState> allowedNextStates;
+    private Boolean canReview;
+    private Boolean hasChildren;
 
     public void trimData() {
         this.code = StringUtils.trim(this.code);

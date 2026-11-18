@@ -17,20 +17,29 @@ import java.util.List;
 public class SteelDto {
     private Long id;
 
-    @NotEmpty
+    private Long assemblyMapId;
+
+    private Long steelCategoryId;
+
     private List<UploadDto> images;
 
-    @NotNull
     private Long barCode;
+
+    private String barLabel;
 
     @NotNull
     private Long barQuantity;
 
-    @NotNull
     private BigDecimal spliceLength;
+
+    private BigDecimal bendDeduction;
 
     @NotNull
     private BigDecimal barDiameter;
+
+    private Integer sortOrder;
+
+    private String note;
 
     @Valid
     @NotEmpty

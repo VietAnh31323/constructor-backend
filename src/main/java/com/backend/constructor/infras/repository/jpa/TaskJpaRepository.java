@@ -16,4 +16,11 @@ public interface TaskJpaRepository extends BaseJpaRepository<TaskEntity> {
     List<TaskEntity> findAllByReviewerId(Long reviewerId);
 
     List<TaskEntity> findAllByReviewerIdIn(Collection<Long> reviewerIds);
+
+    /** 2.26: Công việc quá hạn chưa hoàn thành và chưa được cảnh báo kể từ mốc `since` */
+    @org.springframework.data.jpa.repository.Query("SELECT t FROM TaskEntity t WHERE t.endDate < :today "
+            + "AND (t.state IS NULL OR t.state <> com.backend.constructor.core.domain.enums.TaskState.COMPLETED) "
+            + "AND (t.overdueNotifiedAt IS NULL OR t.overdueNotifiedAt < :since)")
+    List<TaskEntity> findOverdueTasksForAlert(@org.springframework.data.repository.query.Param("today") java.time.LocalDate today,
+                                             @org.springframework.data.repository.query.Param("since") java.time.LocalDateTime since);
 }

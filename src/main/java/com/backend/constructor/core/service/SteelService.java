@@ -28,13 +28,18 @@ public class SteelService implements SteelApi {
     private final SteelMapper steelMapper;
     private final SteelLineRepository steelLineRepository;
     private final SteelProjectAssemblyMapRepository steelProjectAssemblyMapRepository;
+    private final SteelCalculationService steelCalculationService;
+    private final com.backend.constructor.infras.repository.jpa.SteelJpaRepository steelJpaRepository;
 
     @Override
     @Transactional
     public IdResponse create(SteelDto input) {
         SteelEntity steelEntity = steelMapper.toEntity(input);
         steelRepository.save(steelEntity);
-        saveSteelLines(steelEntity, input.getSteelLines());
+        List<SteelLineEntity> savedLines = saveSteelLines(steelEntity, input.getSteelLines());
+        Long sameQty = resolveSameQuantity(steelEntity.getAssemblyMapId());
+        steelCalculationService.calculateBar(steelEntity, savedLines, sameQty);
+        steelRepository.save(steelEntity);
         return IdResponse.builder().id(steelEntity.getId()).build();
     }
 
@@ -45,7 +50,10 @@ public class SteelService implements SteelApi {
         steelMapper.update(input, steelEntity);
         steelRepository.save(steelEntity);
         clearSteelLines(steelEntity.getId());
-        saveSteelLines(steelEntity, input.getSteelLines());
+        List<SteelLineEntity> savedLines = saveSteelLines(steelEntity, input.getSteelLines());
+        Long sameQty = resolveSameQuantity(steelEntity.getAssemblyMapId());
+        steelCalculationService.calculateBar(steelEntity, savedLines, sameQty);
+        steelRepository.save(steelEntity);
         return IdResponse.builder().id(steelEntity.getId()).build();
     }
 
@@ -68,26 +76,43 @@ public class SteelService implements SteelApi {
 
     @Override
     public List<SteelOutput> getListSteelByAssemblyId(Long assemblyId) {
-        SteelProjectAssemblyMapEntity steelProjectAssemblyMapEntity = steelProjectAssemblyMapRepository.getSteelProjectAssemblyMapById(assemblyId);
-        List<SteelEntity> steelEntities = steelRepository.findAllByIds(steelProjectAssemblyMapEntity.getSteelIds());
+        List<SteelEntity> steelEntities = steelJpaRepository.findAllByAssemblyMapIdOrderBySortOrderAscIdAsc(assemblyId);
+        if (steelEntities.isEmpty()) {
+            SteelProjectAssemblyMapEntity steelProjectAssemblyMapEntity = steelProjectAssemblyMapRepository.getSteelProjectAssemblyMapById(assemblyId);
+            if (steelProjectAssemblyMapEntity.getSteelIds() != null && !steelProjectAssemblyMapEntity.getSteelIds().isEmpty()) {
+                steelEntities = steelRepository.findAllByIds(steelProjectAssemblyMapEntity.getSteelIds());
+            }
+        }
         return steelEntities.stream().map(steelMapper::toOutput).toList();
     }
 
-    private void saveSteelLines(SteelEntity steelEntity,
-                                List<SteelLineDto> steelLines) {
+    private Long resolveSameQuantity(Long assemblyMapId) {
+        if (assemblyMapId == null) {
+            return 1L;
+        }
+        SteelProjectAssemblyMapEntity assembly = steelProjectAssemblyMapRepository.getSteelProjectAssemblyMapById(assemblyMapId);
+        return assembly.getSameQuantity() != null && assembly.getSameQuantity() > 0 ? assembly.getSameQuantity() : 1L;
+    }
+
+    private List<SteelLineEntity> saveSteelLines(SteelEntity steelEntity,
+                                                 List<SteelLineDto> steelLines) {
         List<SteelLineEntity> steelLineEntities = new ArrayList<>();
         BigDecimal length = BigDecimal.ZERO;
-        for (SteelLineDto steelLine : steelLines) {
-            SteelLineEntity steelLineEntity = SteelLineEntity.builder()
-                    .steelId(steelEntity.getId())
-                    .paramName(steelLine.getParamName())
-                    .value(steelLine.getValue())
-                    .build();
-            steelLineEntities.add(steelLineEntity);
-            length = length.add(steelLine.getValue());
+        if (steelLines != null) {
+            for (SteelLineDto steelLine : steelLines) {
+                BigDecimal val = steelLine.getValue() != null ? steelLine.getValue() : BigDecimal.ZERO;
+                SteelLineEntity steelLineEntity = SteelLineEntity.builder()
+                        .steelId(steelEntity.getId())
+                        .paramName(steelLine.getParamName())
+                        .value(val)
+                        .build();
+                steelLineEntities.add(steelLineEntity);
+                length = length.add(val);
+            }
+            steelLineEntities = steelLineRepository.saveAll(steelLineEntities);
         }
-        steelLineRepository.saveAll(steelLineEntities);
         steelEntity.setLength(length);
+        return steelLineEntities;
     }
 
     private void clearSteelLines(Long steelId) {

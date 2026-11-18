@@ -10,5 +10,5 @@ import org.springframework.stereotype.Repository;
 public interface SteelProjectRepository extends BaseRepository<SteelProjectEntity> {
     SteelProjectEntity getSteelProjectById(Long id);
 
-    Page<SteelProjectEntity> getPageSteelProject(String search, Pageable pageable);
+    Page<SteelProjectEntity> getPageSteelProject(String search, Long projectId, Pageable pageable);
 }

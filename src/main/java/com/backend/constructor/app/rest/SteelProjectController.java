@@ -42,7 +42,14 @@ public class SteelProjectController implements SteelProjectApi {
     @HandsomePaging
     @GetMapping("/list")
     public Page<SteelProjectOutput> getListSteelProject(@RequestParam(required = false) String search,
+                                                        @RequestParam(required = false) Long projectId,
                                                         @ParameterObject Pageable pageable) {
-        return steelProjectService.getListSteelProject(search, pageable);
+        return steelProjectService.getListSteelProject(search, projectId, pageable);
+    }
+
+    @Override
+    @DeleteMapping
+    public void delete(@RequestParam Long id) {
+        steelProjectService.delete(id);
     }
 }

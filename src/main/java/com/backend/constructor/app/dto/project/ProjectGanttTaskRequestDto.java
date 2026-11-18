@@ -30,8 +30,17 @@ public class ProjectGanttTaskRequestDto {
     private LocalDate endDate;
 
     private PriorityLevel priorityLevel;
+
+    /** Chỉ chấp nhận NOT_STARTED hoặc IN_PROGRESS khi tạo mới (2.23). */
     private TaskState state;
+
+    /** @deprecated 2.22: % tiến độ do hệ thống tự tính, giá trị này bị bỏ qua. */
+    @Deprecated
     private BigDecimal progressPercent;
+
+    /** 2.22: Trọng số công việc khi tổng hợp tiến độ (mặc định 1). */
+    private BigDecimal weight;
+
     private Long reviewerId;
     private List<Long> staffIds;
     private String description;

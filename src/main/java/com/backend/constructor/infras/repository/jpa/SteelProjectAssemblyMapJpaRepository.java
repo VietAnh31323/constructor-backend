@@ -9,4 +9,8 @@ import java.util.List;
 @Repository
 public interface SteelProjectAssemblyMapJpaRepository extends BaseJpaRepository<SteelProjectAssemblyMapEntity> {
     List<SteelProjectAssemblyMapEntity> findAllBySteelProjectId(Long steelProjectId);
+
+    List<SteelProjectAssemblyMapEntity> findAllBySteelProjectIdOrderBySortOrderAscIdAsc(Long steelProjectId);
+
+    void deleteAllBySteelProjectId(Long steelProjectId);
 }

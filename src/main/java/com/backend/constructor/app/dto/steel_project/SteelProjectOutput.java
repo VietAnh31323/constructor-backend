@@ -2,6 +2,7 @@ package com.backend.constructor.app.dto.steel_project;
 
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Getter
@@ -16,6 +17,12 @@ public class SteelProjectOutput {
 
     private String name;
 
+    private Long projectId;
+
+    private String projectCode;
+
+    private String projectName;
+
     private String owner;
 
     private String address;
@@ -25,4 +32,12 @@ public class SteelProjectOutput {
     private LocalDate deliveryDate;
 
     private String description;
+
+    private Integer assemblyCount;
+
+    private Long barCount;
+
+    private BigDecimal totalLength;
+
+    private BigDecimal totalWeight;
 }

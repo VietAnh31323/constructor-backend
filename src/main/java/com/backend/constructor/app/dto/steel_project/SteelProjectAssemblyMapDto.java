@@ -3,10 +3,10 @@ package com.backend.constructor.app.dto.steel_project;
 import com.backend.constructor.app.dto.steel.SteelOutput;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Getter
@@ -23,7 +23,14 @@ public class SteelProjectAssemblyMapDto {
     @NotNull
     private Long sameQuantity;
 
+    private Integer sortOrder;
+
+    private String note;
+
+    private BigDecimal totalLength;
+
+    private BigDecimal totalWeight;
+
     @Valid
-    @NotEmpty
     private List<SteelOutput> steels;
 }

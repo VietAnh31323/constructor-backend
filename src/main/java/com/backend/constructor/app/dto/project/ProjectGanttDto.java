@@ -8,6 +8,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -24,22 +25,24 @@ public class ProjectGanttDto {
     private ProjectState state;
     private String stateLabel;
     private BigDecimal progressPercent;
-
     private LocalDate signDate;
     private LocalDate deliveryDate;
     private LocalDate actualHandoverDate;
     private LocalDate warrantyEndDate;
-
     private LocalDate timelineStartDate;
     private LocalDate timelineEndDate;
-
     private int totalPhases;
     private int totalTasks;
     private int completedTasks;
     private int inProgressTasks;
     private int notStartedTasks;
     private int overdueTasks;
-
+    // 2.23 / 2.26
+    private int pendingReviewTasks;
+    private int returnedTasks;
+    private int atRiskTasks;
+    private String scheduleStatus;
+    private long delayDays;
     private List<PhaseItem> phases;
     private List<MilestoneItem> milestones;
 
@@ -58,6 +61,18 @@ public class ProjectGanttDto {
         private BigDecimal progressPercent;
         private int taskCount;
         private int completedTaskCount;
+        // 2.21: thứ tự, kế hoạch / thực tế, trọng số
+        private Integer sortOrder;
+        private LocalDate plannedStartDate;
+        private LocalDate plannedEndDate;
+        private LocalDate actualStartDate;
+        private LocalDate actualEndDate;
+        private BigDecimal weight;
+        private String note;
+        // 2.26: so sánh kế hoạch – thực tế
+        private int overdueTaskCount;
+        private long delayDays;
+        private String scheduleStatus;
         private List<TaskItem> tasks;
     }
 
@@ -79,10 +94,28 @@ public class ProjectGanttDto {
         private Long remainDays;
         private BigDecimal progressPercent;
         private TaskState state;
+        private String stateLabel;
         private PriorityLevel priorityLevel;
         private boolean overdue;
         private CodeNameResponse reviewer;
         private List<CodeNameResponse> assignees;
+        // 2.22: trọng số
+        private BigDecimal weight;
+        // 2.26: kế hoạch – thực tế
+        private LocalDate actualStartDate;
+        private LocalDate actualEndDate;
+        private long delayDays;
+        private String scheduleStatus;
+        // 2.23: workflow
+        private String returnReason;
+        private LocalDateTime submittedAt;
+        private LocalDateTime reviewedAt;
+        private boolean hasChildren;
+        private boolean canReview;
+        private List<TaskState> allowedNextStates;
+        // 2.25 / 2.27
+        private long siteReportCount;
+        private long commentCount;
         private List<TaskItem> subTasks;
     }
 

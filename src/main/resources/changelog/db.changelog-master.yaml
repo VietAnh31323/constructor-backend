@@ -56,3 +56,9 @@ databaseChangeLog:
   - include:
       file: v1.1.6/01-category-tree-quantity-and-process-templates.sql
       relativeToChangelogFile: true
+  - include:
+      file: v1.1.7/01-progress-workflow-site-report-comment.sql
+      relativeToChangelogFile: true
+  - include:
+      file: v1.1.8/01-steel-data-model-and-project-link.sql
+      relativeToChangelogFile: true

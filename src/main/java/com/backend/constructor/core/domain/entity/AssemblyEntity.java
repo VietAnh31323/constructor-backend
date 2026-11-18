@@ -11,7 +11,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "steel_project")
+@Table(name = "assembly")
 public class AssemblyEntity extends BaseEntity {
 
     @Id

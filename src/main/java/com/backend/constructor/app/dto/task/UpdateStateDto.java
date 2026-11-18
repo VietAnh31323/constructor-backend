@@ -14,4 +14,7 @@ public class UpdateStateDto {
     private Long id;
     @NotNull
     private TaskState state;
+
+    /** 2.23: Lý do (bắt buộc khi Trả lại) */
+    private String reason;
 }

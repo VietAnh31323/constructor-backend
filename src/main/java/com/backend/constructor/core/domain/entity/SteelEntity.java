@@ -34,4 +34,22 @@ public class SteelEntity extends BaseEntity {
     private BigDecimal barDiameter;
 
     private BigDecimal length;
+
+    private Long assemblyMapId;
+
+    private Long steelCategoryId;
+
+    private String barLabel;
+
+    private BigDecimal bendDeduction;
+
+    private BigDecimal cutLength;
+
+    private BigDecimal unitWeight;
+
+    private BigDecimal totalWeight;
+
+    private Integer sortOrder;
+
+    private String note;
 }
