@@ -62,3 +62,6 @@ databaseChangeLog:
   - include:
       file: v1.1.8/01-steel-data-model-and-project-link.sql
       relativeToChangelogFile: true
+  - include:
+      file: v1.1.9/01-notification-email-and-preferences.sql
+      relativeToChangelogFile: true

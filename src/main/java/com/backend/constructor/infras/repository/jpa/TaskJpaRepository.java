@@ -23,4 +23,11 @@ public interface TaskJpaRepository extends BaseJpaRepository<TaskEntity> {
             + "AND (t.overdueNotifiedAt IS NULL OR t.overdueNotifiedAt < :since)")
     List<TaskEntity> findOverdueTasksForAlert(@org.springframework.data.repository.query.Param("today") java.time.LocalDate today,
                                              @org.springframework.data.repository.query.Param("since") java.time.LocalDateTime since);
+
+    @org.springframework.data.jpa.repository.Query("SELECT t FROM TaskEntity t WHERE t.endDate BETWEEN :today AND :dueEnd "
+            + "AND (t.state IS NULL OR t.state <> com.backend.constructor.core.domain.enums.TaskState.COMPLETED) "
+            + "AND (t.overdueNotifiedAt IS NULL OR t.overdueNotifiedAt < :since)")
+    List<TaskEntity> findDueSoonTasksForAlert(@org.springframework.data.repository.query.Param("today") java.time.LocalDate today,
+                                              @org.springframework.data.repository.query.Param("dueEnd") java.time.LocalDate dueEnd,
+                                              @org.springframework.data.repository.query.Param("since") java.time.LocalDateTime since);
 }

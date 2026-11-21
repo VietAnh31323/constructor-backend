@@ -23,6 +23,7 @@ import java.util.*;
 public class NotificationService {
     private final NotificationJpaRepository notificationRepository;
     private final CurrentUserService currentUserService;
+    private final EmailNotificationService emailNotificationService;
 
     /**
      * Gửi thông báo nội bộ tới danh sách nhân sự (bỏ qua null, trùng lặp và người thực hiện thao tác).
@@ -57,7 +58,8 @@ public class NotificationService {
                     .isRead(Boolean.FALSE)
                     .build());
         }
-        notificationRepository.saveAll(entities);
+        List<NotificationEntity> saved = notificationRepository.saveAll(entities);
+        emailNotificationService.sendForNotifications(saved);
     }
 
     public Page<NotificationDto> getMyNotifications(boolean unreadOnly, Pageable pageable) {

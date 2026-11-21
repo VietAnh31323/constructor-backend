@@ -47,4 +47,11 @@ public class NotificationEntity extends BaseEntity {
 
     @Column(name = "read_at")
     private LocalDateTime readAt;
+
+    @Column(name = "email_sent", nullable = false)
+    @Builder.Default
+    private Boolean emailSent = Boolean.FALSE;
+
+    @Column(name = "email_sent_at")
+    private LocalDateTime emailSentAt;
 }

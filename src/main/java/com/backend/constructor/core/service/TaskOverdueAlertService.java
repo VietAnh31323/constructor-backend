@@ -1,12 +1,14 @@
 package com.backend.constructor.core.service;
 
 import com.backend.constructor.core.domain.entity.ProjectEntity;
+import com.backend.constructor.core.domain.entity.ProjectLineEntity;
 import com.backend.constructor.core.domain.entity.TaskEntity;
 import com.backend.constructor.core.domain.entity.TaskStaffMapEntity;
 import com.backend.constructor.core.domain.enums.NotificationType;
 import com.backend.constructor.core.port.repository.ProjectRepository;
 import com.backend.constructor.core.port.repository.TaskRepository;
 import com.backend.constructor.core.port.repository.TaskStaffMapRepository;
+import com.backend.constructor.infras.repository.jpa.ProjectLineJpaRepository;
 import com.backend.constructor.infras.repository.jpa.TaskJpaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +38,7 @@ public class TaskOverdueAlertService {
     private final ProjectRepository projectRepository;
     private final ProgressCalculationService progressCalculationService;
     private final NotificationService notificationService;
+    private final ProjectLineJpaRepository projectLineJpaRepository;
 
     /** Chạy mỗi ngày lúc 07:00 và 13:00 */
     @Scheduled(cron = "${app.task-overdue-alert.cron:0 0 7,13 * * *}")
@@ -107,6 +110,61 @@ public class TaskOverdueAlertService {
             notified++;
         }
         taskRepository.saveAll(toSave);
+
+        // 3.09: Quét công việc sắp đến hạn (trong 2 ngày tới)
+        List<TaskEntity> dueSoon = taskJpaRepository.findDueSoonTasksForAlert(today, today.plusDays(2), startOfToday);
+        if (!dueSoon.isEmpty()) {
+            Set<Long> dueIds = dueSoon.stream().map(TaskEntity::getId).collect(Collectors.toSet());
+            Map<Long, Set<Long>> dueAssignees = taskStaffMapRepository.getListByTaskIds(dueIds).stream()
+                    .filter(m -> m.getTaskId() != null && m.getStaffId() != null)
+                    .collect(Collectors.groupingBy(TaskStaffMapEntity::getTaskId,
+                            Collectors.mapping(TaskStaffMapEntity::getStaffId, Collectors.toSet())));
+            List<TaskEntity> dueToSave = new ArrayList<>();
+            for (TaskEntity task : dueSoon) {
+                Long projectId = progressCalculationService.resolveProjectIdOfTask(task.getId());
+                ProjectEntity project = projectId == null ? null
+                        : projectCache.computeIfAbsent(projectId, projectRepository::findById).orElse(null);
+                Set<Long> recipients = new HashSet<>(dueAssignees.getOrDefault(task.getId(), Set.of()));
+                if (task.getReviewerId() != null) recipients.add(task.getReviewerId());
+                long daysLeft = ChronoUnit.DAYS.between(today, task.getEndDate());
+                notificationService.notifyStaffs(recipients, NotificationType.TASK_DUE_SOON,
+                        "Sắp đến hạn (" + (daysLeft == 0 ? "hôm nay" : "còn " + daysLeft + " ngày") + "): " + task.getName(),
+                        "Công việc " + task.getCode()
+                                + (project != null ? " (dự án " + project.getCode() + ")" : "")
+                                + " có hạn kế hoạch " + task.getEndDate() + ".",
+                        TaskWorkflowService.buildTaskLink(projectId, task.getId()),
+                        "TASK", task.getId(), null);
+                task.setOverdueNotifiedAt(now);
+                dueToSave.add(task);
+                notified++;
+            }
+            taskRepository.saveAll(dueToSave);
+        }
+
+        // 3.09: Quét đợt thanh toán sắp/đến hạn (trong 3 ngày tới hoặc đã quá hạn)
+        List<ProjectLineEntity> duePayments = projectLineJpaRepository.findDuePaymentsForAlert(today.plusDays(3), startOfToday);
+        if (!duePayments.isEmpty()) {
+            List<ProjectLineEntity> linesToSave = new ArrayList<>();
+            for (ProjectLineEntity line : duePayments) {
+                if (line.getProjectId() == null) continue;
+                ProjectEntity project = projectCache.computeIfAbsent(line.getProjectId(), projectRepository::findById).orElse(null);
+                if (project == null) continue;
+                Set<Long> recipients = new HashSet<>();
+                if (project.getManagerId() != null) recipients.add(project.getManagerId());
+                if (project.getSupporterId() != null) recipients.add(project.getSupporterId());
+                notificationService.notifyStaffs(recipients, NotificationType.PAYMENT_DUE,
+                        "Đến hạn thanh toán đợt " + (line.getPaymentNo() != null ? line.getPaymentNo() : "") + " - " + project.getName(),
+                        "Dự án " + project.getCode() + " có đợt thanh toán dự kiến ngày " + line.getPaymentDate()
+                                + (line.getPaymentAmount() != null ? " (Số tiền: " + line.getPaymentAmount().toPlainString() + " VNĐ)" : ""),
+                        "/Constructor/Project/" + project.getId() + "?tab=finance",
+                        "PROJECT_PAYMENT", line.getId(), null);
+                line.setLastDueAlertAt(now);
+                linesToSave.add(line);
+                notified++;
+            }
+            projectLineJpaRepository.saveAll(linesToSave);
+        }
+
         return notified;
     }
 }

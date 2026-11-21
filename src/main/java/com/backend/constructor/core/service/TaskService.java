@@ -51,6 +51,8 @@ public class TaskService implements TaskApi {
     private final ProjectRepository projectRepository;
     private final ProgressCalculationService progressCalculationService;
     private final TaskWorkflowService taskWorkflowService;
+    private final NotificationService notificationService;
+    private final CurrentUserService currentUserService;
 
     @Override
     @Transactional
@@ -213,6 +215,7 @@ public class TaskService implements TaskApi {
                                   List<TaskStaffMapDto> taskStaffMaps) {
         if (taskStaffMaps == null || taskStaffMaps.isEmpty()) return;
         List<TaskStaffMapEntity> taskStaffMapEntities = new ArrayList<>();
+        Set<Long> assignedStaffIds = new LinkedHashSet<>();
         for (TaskStaffMapDto taskStaffMapDto : taskStaffMaps) {
             if (taskStaffMapDto.getStaff() == null || taskStaffMapDto.getStaff().getId() == null) continue;
             TaskStaffMapEntity taskStaffMapEntity = TaskStaffMapEntity.builder()
@@ -220,8 +223,25 @@ public class TaskService implements TaskApi {
                     .staffId(taskStaffMapDto.getStaff().getId())
                     .build();
             taskStaffMapEntities.add(taskStaffMapEntity);
+            assignedStaffIds.add(taskStaffMapDto.getStaff().getId());
         }
         taskStaffMapRepository.saveAll(taskStaffMapEntities);
+        if (!assignedStaffIds.isEmpty()) {
+            taskRepository.findById(taskId).ifPresent(task -> {
+                Long projectId = progressCalculationService.resolveProjectIdOfTask(taskId);
+                notificationService.notifyStaffs(
+                        assignedStaffIds,
+                        com.backend.constructor.core.domain.enums.NotificationType.TASK_ASSIGNED,
+                        "Bạn được giao công việc: " + task.getName(),
+                        "Mã công việc " + task.getCode()
+                                + (task.getEndDate() != null ? " — Hạn hoàn thành: " + task.getEndDate() : ""),
+                        TaskWorkflowService.buildTaskLink(projectId, taskId),
+                        "TASK",
+                        taskId,
+                        currentUserService.getCurrentStaffId()
+                );
+            });
+        }
     }
 
     private List<TaskStaffMapDto> getTaskStaffMaps(List<TaskStaffMapEntity> taskStaffMapEntities,
